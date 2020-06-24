@@ -2,10 +2,8 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
+using LongCross;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace Study2
 {
@@ -47,7 +45,6 @@ namespace Study2
         
         private void ImportBlock()
         {
-
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             Editor ed = doc.Editor;
