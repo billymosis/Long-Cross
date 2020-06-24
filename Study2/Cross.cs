@@ -11,9 +11,7 @@ namespace LongCross
         
         public Cross(string Path)
         {
-
             GetData(Path);
-            Revamp();
         }
                           
         public void Draw(int CrossNumber)
@@ -65,9 +63,11 @@ namespace LongCross
 
                         }
 
-
+                        //MID POINT
                         if (!(Desc.FindIndex(s => s.Contains("D")) == -1))
                         {
+                            //ds = dasar start
+                            //de = dasar end
                             int ds = Desc.FindIndex(s => s.Contains("D"));
                             int de = Desc.FindIndex(ds + 1, s => s.Contains("D"));
                             Vector3d v = new Point3d(Dist[ds], Elev[ds], 0).GetVectorTo(new Point3d(Dist[de], Elev[de], 0));
@@ -80,6 +80,7 @@ namespace LongCross
                             }
                             btr.Origin = new Point3d(mid.X, mid.Y, 0);
                         }
+
 
                         using (BlockReference brf = new BlockReference(new Point3d(Dist[ip], Elev[ip], 0), bt["Patok"]))
                         {

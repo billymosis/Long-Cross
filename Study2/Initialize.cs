@@ -1,6 +1,7 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using LongCross;
 using System;
@@ -26,7 +27,6 @@ namespace Study2
             string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
 
             Cross x = new Cross(s);
-            //x.YA(0);
             for (int i = 0; i < x.DataCollection.Count; i++)
             {
                 x.Draw(i);
@@ -42,7 +42,61 @@ namespace Study2
             Console.WriteLine("Cleaning up...");
 
         }
-        
+
+        [CommandMethod("INS")]
+        public void InterSectionPoint()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            Line pl1 = null;
+            Line pl2 = null;
+            Entity ent = null;
+            PromptEntityOptions peo = null;
+            PromptEntityResult per = null;
+            using (Transaction tx = db.TransactionManager.StartTransaction())
+            {
+                //Select first polyline
+                peo = new PromptEntityOptions("Select firtst line:");
+                per = ed.GetEntity(peo);
+                if (per.Status != PromptStatus.OK)
+                {
+                    return;
+                }
+                //Get the polyline entity
+                ent = (Entity)tx.GetObject(per.ObjectId, OpenMode.ForRead);
+                if (ent is Line)
+                {
+                    pl1 = ent as Line;
+                }
+                //Select 2nd polyline
+                peo = new PromptEntityOptions("\n Select Second line:");
+                per = ed.GetEntity(peo);
+                if (per.Status != PromptStatus.OK)
+                {
+                    return;
+                }
+                ent = (Entity)tx.GetObject(per.ObjectId, OpenMode.ForRead);
+                if (ent is Line)
+                {
+                    pl2 = ent as Line;
+                }
+                Point3dCollection pts3D = new Point3dCollection();
+                //Get the intersection Points between line 1 and line 2
+                pl1.IntersectWith(pl2, Intersect.OnBothOperands, pts3D, IntPtr.Zero, IntPtr.Zero);
+                foreach (Point3d pt in pts3D)
+                {
+                    // ed.WriteMessage("\n intersection point :",pt);
+                  //   ed.WriteMessage("Point number: ", pt.X, pt.Y, pt.Z);
+                     ed.WriteMessage($"Intersect On \n X: {pt.X.ToString()} \n Y: {pt.Y.ToString()}");
+
+                   // Application.ShowAlertDialog("\n Intersection Point: " + "\nX = " + pt.X + "\nY = " + pt.Y + "\nZ = " + pt.Z);
+                }
+
+                tx.Commit();
+            }
+
+        }
         private void ImportBlock()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
