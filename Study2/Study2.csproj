@@ -84,6 +84,7 @@
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChangeElevation.cs" />
     <Compile Include="Cross.cs" />
     <Compile Include="Data.cs" />
     <Compile Include="Initialize.cs" />

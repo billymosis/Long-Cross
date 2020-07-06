@@ -17,7 +17,6 @@ namespace Study2
         {
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
             ImportBlock();
-
         }
 
         [CommandMethod("QE")]
@@ -31,9 +30,6 @@ namespace Study2
             {
                 x.Draw(i);
             }
-
-
-
         }
         public void Terminate()
 
@@ -41,6 +37,31 @@ namespace Study2
 
             Console.WriteLine("Cleaning up...");
 
+        }
+
+        [CommandMethod("SelectObjectsByCrossingWindow")]
+        public static void SelectObjectsByCrossingWindow()
+        {
+            // Get the current document editor
+            Editor acDocEd = Application.DocumentManager.MdiActiveDocument.Editor;
+
+            // Create a crossing window from (2,2,0) to (10,8,0)
+            PromptSelectionResult acSSPrompt;
+            acSSPrompt = acDocEd.SelectCrossingWindow(new Point3d(2, 2, 0),
+                                                        new Point3d(10, 8, 0));
+
+            // If the prompt status is OK, objects were selected
+            if (acSSPrompt.Status == PromptStatus.OK)
+            {
+                SelectionSet acSSet = acSSPrompt.Value;
+
+                Application.ShowAlertDialog("Number of objects selected: " +
+                                            acSSet.Count.ToString());
+            }
+            else
+            {
+                Application.ShowAlertDialog("Number of objects selected: 0");
+            }
         }
 
         [CommandMethod("INS")]
@@ -87,16 +108,17 @@ namespace Study2
                 foreach (Point3d pt in pts3D)
                 {
                     // ed.WriteMessage("\n intersection point :",pt);
-                  //   ed.WriteMessage("Point number: ", pt.X, pt.Y, pt.Z);
-                     ed.WriteMessage($"Intersect On \n X: {pt.X.ToString()} \n Y: {pt.Y.ToString()}");
+                    //   ed.WriteMessage("Point number: ", pt.X, pt.Y, pt.Z);
+                    ed.WriteMessage($"Intersect On \n X: {pt.X.ToString()} \n Y: {pt.Y.ToString()}");
 
-                   // Application.ShowAlertDialog("\n Intersection Point: " + "\nX = " + pt.X + "\nY = " + pt.Y + "\nZ = " + pt.Z);
+                    // Application.ShowAlertDialog("\n Intersection Point: " + "\nX = " + pt.X + "\nY = " + pt.Y + "\nZ = " + pt.Z);
                 }
 
                 tx.Commit();
             }
 
         }
+
         private void ImportBlock()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -124,5 +146,7 @@ namespace Study2
                 }
             }
         }
+
+
     }
 }
