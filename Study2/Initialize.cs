@@ -29,14 +29,8 @@ namespace Study2
             for (int i = 0; i < x.DataCollection.Count; i++)
             {
                 x.Draw(i);
+                x.Place(i);
             }
-        }
-        public void Terminate()
-
-        {
-
-            Console.WriteLine("Cleaning up...");
-
         }
 
         [CommandMethod("SelectObjectsByCrossingWindow")]
@@ -147,6 +141,13 @@ namespace Study2
             }
         }
 
+        public void Terminate()
+
+        {
+
+            Console.WriteLine("Cleaning up...");
+
+        }
 
     }
 }

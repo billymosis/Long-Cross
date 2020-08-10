@@ -16,6 +16,8 @@ public class Data
     public double KX { get; set; }
     public double KY { get; set; }
     public double KZ { get; set; }
+    public double Datum { get; set; }
+    public double BoundLeft { get; set; }
     public string Bangunan { get; set; }
     public string TipeBangunan { get; set; }
     public List<Data> DataCollection = new List<Data>();
@@ -96,6 +98,7 @@ public class Data
                 if (double.Parse(item.Elevation[i]) < item.Dasar || item.Dasar == 0)
                 {
                     item.Dasar = double.Parse(item.Elevation[i]);
+                    item.Datum = Math.Round(item.Dasar) - 2;
                 }
             }
 
