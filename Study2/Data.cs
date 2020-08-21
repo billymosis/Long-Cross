@@ -12,12 +12,15 @@ public class Data
     public double TanggulKiri { get; set; }
     public double TanggulKanan { get; set; }
     public double Dasar { get; set; }
+    public double ElvAsDasar { get; set; }
+    public double DistAsDasar { get; set; }
     public string NamaPatok { get; set; }
     public double KX { get; set; }
     public double KY { get; set; }
     public double KZ { get; set; }
     public double Datum { get; set; }
     public double BoundLeft { get; set; }
+    public double BoundRight { get; set; }
     public string Bangunan { get; set; }
     public string TipeBangunan { get; set; }
     public List<Data> DataCollection = new List<Data>();
@@ -41,7 +44,9 @@ public class Data
             int limit = ls.Count;
             for (int i = 0; i < limit; i = i + 3)
             {
+#pragma warning disable IDE0017 // Simplify object initialization
                 Data d = new Data();
+#pragma warning restore IDE0017 // Simplify object initialization
 
                 d.Elevation = ls[i].Split(new char[] { ',' }).ToList();
                 d.Distance = ls[i + 1].Split(new char[] { ',' }).ToList();
@@ -95,6 +100,7 @@ public class Data
                         item.TanggulKanan = double.Parse(item.Elevation[i]);
                     }
                 }
+                //Dasar = Elevasi terendah
                 if (double.Parse(item.Elevation[i]) < item.Dasar || item.Dasar == 0)
                 {
                     item.Dasar = double.Parse(item.Elevation[i]);

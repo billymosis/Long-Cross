@@ -5,6 +5,7 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using LongCross;
 using System;
+using System.Diagnostics;
 
 namespace Study2
 {
@@ -17,20 +18,51 @@ namespace Study2
         {
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
             ImportBlock();
+            LoadLinetype();
         }
 
         [CommandMethod("QE")]
         public static void QE()
         {
-            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
 
-            Cross x = new Cross(s);
-            for (int i = 0; i < x.DataCollection.Count; i++)
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+            try
             {
-                x.Draw(i);
-                x.Place(i);
+                string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+                Stopwatch stopwatch = new Stopwatch();
+                Cross x = new Cross(s);
+                ProgressMeter pm = new ProgressMeter();
+                pm.Start("Processing Cross");
+                pm.SetLimit(x.DataCollection.Count);
+                int limit = x.DataCollection.Count;
+                //limit = 8;
+                stopwatch.Start();
+                for (int i = 0; i < limit; i++)
+                {
+                    x.Draw(i);
+                    x.Place(i);
+                    pm.MeterProgress();
+                }
+                pm.Stop();
+                stopwatch.Stop();
+                pm.Dispose();
+                if (x.crossError.Split(',').Length != 0)
+                {
+                    ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
+        $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+                }
+
+                //Doc.SendStringToExecute("zoom E ", true, false, false);
+                ed.Command("pdmode", "3");
             }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage(e.Message);
+                throw;
+            }
+            
+
         }
 
         [CommandMethod("SelectObjectsByCrossingWindow")]
@@ -58,6 +90,78 @@ namespace Study2
             }
         }
 
+        [CommandMethod("CheckObject")]
+        public static void CheckObject()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            try
+            {
+                Point3dCollection points = new Point3dCollection();
+                PromptPointOptions ppo = new PromptPointOptions("");
+                PromptPointResult ppr = ed.GetPoint(ppo);
+                ppo.BasePoint = ppr.Value;
+                ppo.UseDashedLine = true;
+                ppo.UseBasePoint = true;
+                PromptPointResult asd = ed.GetPoint(ppo);
+                points.Add(ppr.Value);
+                points.Add(asd.Value);
+                PromptSelectionResult prSelRes = ed.SelectFence(points);
+                if (prSelRes.Status == PromptStatus.OK)
+                {
+                    using (SelectionSet ss = prSelRes.Value)
+                    {
+                        if (ss != null)
+                        {
+                            foreach (ObjectId item in ss.GetObjectIds())
+                            {
+                                ed.WriteMessage(Environment.NewLine + item.ObjectClass.DxfName.ToString());
+                            }
+                            ed.WriteMessage("\nThe SS is good and has {0} entities.", ss.Count);
+                        }
+                        else
+                        {
+                            ed.WriteMessage("\nThe SS is bad!");
+                        }
+                    }
+                }
+                else
+                {
+                    ed.WriteMessage("\nFence selection failed!");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage(Environment.NewLine + ex.ToString());
+            }
+        }
+
+        public static void LoadLinetype()
+        {
+            // Get the current document and database
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database acCurDb = acDoc.Database;
+
+            // Start a transaction
+            using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+            {
+                // Open the Linetype table for read
+                LinetypeTable acLineTypTbl;
+                acLineTypTbl = acTrans.GetObject(acCurDb.LinetypeTableId,
+                                                    OpenMode.ForRead) as LinetypeTable;
+
+                string sLineTypName = "DASHED";
+
+                if (acLineTypTbl.Has(sLineTypName) == false)
+                {
+                    // Load the Center Linetype
+                    acCurDb.LoadLineTypeFile(sLineTypName, "acad.lin");
+                }
+
+                // Save the changes and dispose of the transaction
+                acTrans.Commit();
+            }
+        }
+
         [CommandMethod("INS")]
         public void InterSectionPoint()
         {
@@ -69,6 +173,7 @@ namespace Study2
             Entity ent = null;
             PromptEntityOptions peo = null;
             PromptEntityResult per = null;
+
             using (Transaction tx = db.TransactionManager.StartTransaction())
             {
                 //Select first polyline
@@ -84,6 +189,12 @@ namespace Study2
                 {
                     pl1 = ent as Line;
                 }
+                Point3dCollection p3d = new Point3dCollection
+                {
+                    pl1.StartPoint,
+                    pl1.EndPoint
+                };
+                ed.SelectFence(p3d);
                 //Select 2nd polyline
                 peo = new PromptEntityOptions("\n Select Second line:");
                 per = ed.GetEntity(peo);

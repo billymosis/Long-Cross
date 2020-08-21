@@ -1,0 +1,59 @@
+﻿[CommandMethod("INS")]
+        public void InterSectionPoint()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            Line pl1 = null;
+            Line pl2 = null;
+            Entity ent = null;
+            PromptEntityOptions peo = null;
+            PromptEntityResult per = null;
+
+            using (Transaction tx = db.TransactionManager.StartTransaction())
+            {
+                //Select first polyline
+                peo = new PromptEntityOptions("Select firtst line:");
+                per = ed.GetEntity(peo);
+                if (per.Status != PromptStatus.OK)
+                {
+                    return;
+                }
+                //Get the polyline entity
+                ent = (Entity)tx.GetObject(per.ObjectId, OpenMode.ForRead);
+                if (ent is Line)
+                {
+                    pl1 = ent as Line;
+                }
+                Point3dCollection p3d = new Point3dCollection();
+                p3d.Add(pl1.StartPoint);
+                p3d.Add(pl1.EndPoint);
+                ed.SelectFence();
+                //Select 2nd polyline
+                peo = new PromptEntityOptions("\n Select Second line:");
+                per = ed.GetEntity(peo);
+                if (per.Status != PromptStatus.OK)
+                {
+                    return;
+                }
+                ent = (Entity)tx.GetObject(per.ObjectId, OpenMode.ForRead);
+                if (ent is Line)
+                {
+                    pl2 = ent as Line;
+                }
+                Point3dCollection pts3D = new Point3dCollection();
+                //Get the intersection Points between line 1 and line 2
+                pl1.IntersectWith(pl2, Intersect.OnBothOperands, pts3D, IntPtr.Zero, IntPtr.Zero);
+                foreach (Point3d pt in pts3D)
+                {
+                    // ed.WriteMessage("\n intersection point :",pt);
+                    //   ed.WriteMessage("Point number: ", pt.X, pt.Y, pt.Z);
+                    ed.WriteMessage($"Intersect On \n X: {pt.X.ToString()} \n Y: {pt.Y.ToString()}");
+
+                    // Application.ShowAlertDialog("\n Intersection Point: " + "\nX = " + pt.X + "\nY = " + pt.Y + "\nZ = " + pt.Z);
+                }
+
+                tx.Commit();
+            }
+
+        }
