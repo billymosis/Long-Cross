@@ -44,24 +44,31 @@ namespace Study2
                     x.Place(i);
                     pm.MeterProgress();
                 }
-                pm.Stop();
-                stopwatch.Stop();
-                pm.Dispose();
+
                 if (x.crossError.Split(',').Length != 0)
                 {
                     ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
         $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
                 }
+                else
+                {
+                    ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+                }
 
                 //Doc.SendStringToExecute("zoom E ", true, false, false);
-                ed.Command("pdmode", "3");
+                //ed.Command("XCLIPFRAME", "0", "pdmode", "3");
+                Application.SetSystemVariable("XCLIPFRAME", 0);
+                Application.SetSystemVariable("PDMODE", 3);
+                pm.Stop();
+                stopwatch.Stop();
+                pm.Dispose();
             }
             catch (System.Exception e)
             {
                 ed.WriteMessage(e.Message);
                 throw;
             }
-            
+
 
         }
 

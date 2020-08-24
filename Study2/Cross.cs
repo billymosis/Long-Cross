@@ -31,65 +31,18 @@ namespace LongCross
             {
                 using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
                 {
+
                     using (BlockTableRecord btr = new BlockTableRecord())
                     {
-                        if (!bt.Has("CircleBlock"))
+                        if (!bt.Has("_" + DataCollection[CrossNumber].NamaPatok + "_"))
                         {
-                            using (BlockTableRecord acBlkTblRec = new BlockTableRecord())
-                            {
-                                acBlkTblRec.Name = "CircleBlock";
-
-                                // Set the insertion point for the block
-                                acBlkTblRec.Origin = new Point3d(0, 0, 0);
-
-                                // Add a circle to the block
-                                using (Circle acCirc = new Circle())
-                                {
-                                    acCirc.Center = new Point3d(0, 0, 0);
-                                    acCirc.Radius = 2;
-
-                                    acBlkTblRec.AppendEntity(acCirc);
-
-                                    tr.GetObject(bt.Id, OpenMode.ForWrite);
-                                    bt.Add(acBlkTblRec);
-                                    tr.AddNewlyCreatedDBObject(acBlkTblRec, true);
-                                }
-                            }
-                        }
-
-
-                    }
-                    using (BlockTableRecord btr = new BlockTableRecord())
-                    {
-                        if (!bt.Has(DataCollection[CrossNumber].NamaPatok))
-                        {
+                            bt.Add(btr);
+                            btr.Name = "_" + DataCollection[CrossNumber].NamaPatok + "_";
                             List<double> Elev = DataCollection[CrossNumber].Elevation.ConvertAll(x => double.Parse(x));
                             List<double> Dist = DataCollection[CrossNumber].Distance.ConvertAll(x => double.Parse(x));
                             List<string> Desc = DataCollection[CrossNumber].Description;
-
-
-
-                            if (Dist.Count == 0)
-                            {
-                                DataCollection[CrossNumber].BoundLeft = 0;
-                                DataCollection[CrossNumber].BoundRight = Dist.Max();
-                            }
-                            else
-                            {
-                                DataCollection[CrossNumber].BoundLeft = Dist.Min();
-                                DataCollection[CrossNumber].BoundRight = Dist.Max();
-                            }
-
-                            using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].BoundLeft, DataCollection[CrossNumber].Datum, 0), bt["CircleBlock"]))
-                            {
-                                btr.AppendEntity(brf);
-                                tr.AddNewlyCreatedDBObject(brf, true);
-                            }
-
                             int limit = Elev.Count;
                             int ip = Dist.IndexOf(0);
-                            bt.Add(btr);
-                            btr.Name = DataCollection[CrossNumber].NamaPatok;
 
                             //Error Detector
                             if (ip == -1 || (Desc.FindIndex(s => s.Contains("D")) == -1))
@@ -106,8 +59,6 @@ namespace LongCross
                                 if (!(i == limit - 1))
                                 {
 
-
-
                                     using (Line Jalan = new Line())
                                     {
                                         Jalan.StartPoint = new Point3d(Dist[i], Elev[i], 0);
@@ -122,10 +73,7 @@ namespace LongCross
                                         {
                                             Jalan.ColorIndex = 2;
                                         }
-
                                         btr.AppendEntity(Jalan);
-
-
                                     }
 
 
@@ -247,7 +195,7 @@ namespace LongCross
                                 }
                             }
 
-                            btr.Origin = new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
+
 
                             //Tambah Block Patok
                             if (!(ip == -1))
@@ -265,6 +213,98 @@ namespace LongCross
                                 }
                             }
 
+                            // Set the insertion point for the block
+                            btr.Origin = new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
+                            //btr.AppendEntity(crossLine);
+                            crossLine.Dispose();
+                        }
+                    }
+
+                    using (BlockTableRecord btr = new BlockTableRecord())
+                    {
+                        if (!bt.Has(DataCollection[CrossNumber].NamaPatok))
+                        {
+                            Database acCurDb = Application.DocumentManager.MdiActiveDocument.Database;
+
+                            bt.Add(btr);
+                            btr.Name = DataCollection[CrossNumber].NamaPatok;
+                            btr.Origin = new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
+
+                            Point2dCollection ptCol = new Point2dCollection
+                            {
+                                new Point2d(btr.Origin.X + 5.5, btr.Origin.Y),
+                                new Point2d(btr.Origin.X + 5.5 + 30, DataCollection[CrossNumber].ElvMax + 0.2)
+                            };
+
+                            Vector3d normal;
+                            double elevx = 0;
+
+                            if (acCurDb.TileMode == true)
+                            {
+                                normal = acCurDb.Ucsxdir.CrossProduct(acCurDb.Ucsydir);
+                                elevx = acCurDb.Elevation;
+                            }
+                            else
+                            {
+                                normal = acCurDb.Pucsxdir.CrossProduct(acCurDb.Pucsydir);
+                                elevx = acCurDb.Pelevation;
+                            }
+
+                            //Tambah Block Cross
+
+                            using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0), bt["_" + DataCollection[CrossNumber].NamaPatok + "_"]))
+                            {
+                                btr.AppendEntity(brf);
+                                tr.AddNewlyCreatedDBObject(brf, true);
+
+
+                                using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
+                                {
+                                    Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
+                       new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
+                                    filter.Definition = filterDef;
+
+                                    // Define the name of the extension dictionary and entry name
+                                    string dictName = "ACAD_FILTER";
+                                    string spName = "SPATIAL";
+
+                                    // Check to see if the Extension Dictionary exists, if not create it
+                                    if (brf.ExtensionDictionary.IsNull)
+                                    {
+                                        brf.CreateExtensionDictionary();
+                                    }
+
+                                    // Open the Extension Dictionary for write
+                                    DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
+
+                                    // Check to see if the dictionary for clipped boundaries exists, 
+                                    // and add the spatial filter to the dictionary
+                                    if (extDict.Contains(dictName))
+                                    {
+                                        DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
+
+                                        if (filterDict.Contains(spName))
+                                        {
+                                            filterDict.Remove(spName);
+                                        }
+
+                                        filterDict.SetAt(spName, filter);
+                                    }
+                                    else
+                                    {
+                                        using (DBDictionary filterDict = new DBDictionary())
+                                        {
+                                            extDict.SetAt(dictName, filterDict);
+
+                                            tr.AddNewlyCreatedDBObject(filterDict, true);
+                                            filterDict.SetAt(spName, filter);
+                                        }
+                                    }
+
+                                    tr.AddNewlyCreatedDBObject(filter, true);
+
+                                }
+                            }
                             //Tambah Block Legend
 
                             using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0), bt["Block1"]))
@@ -313,12 +353,8 @@ namespace LongCross
 
                                         }
                                     }
-
                                 }
                             }
-                            btr.AppendEntity(crossLine);
-                            crossLine.Dispose();
-
                         }
                         else
                         {

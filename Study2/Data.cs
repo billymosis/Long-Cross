@@ -13,6 +13,7 @@ public class Data
     public double TanggulKanan { get; set; }
     public double Dasar { get; set; }
     public double ElvAsDasar { get; set; }
+    public double ElvMax { get; set; }
     public double DistAsDasar { get; set; }
     public string NamaPatok { get; set; }
     public double KX { get; set; }
@@ -105,6 +106,12 @@ public class Data
                 {
                     item.Dasar = double.Parse(item.Elevation[i]);
                     item.Datum = Math.Round(item.Dasar) - 2;
+                }
+
+                //ElvMax = ElevasiMax
+                if (double.Parse(item.Elevation[i]) > item.ElvMax || item.Dasar == 0)
+                {
+                    item.ElvMax = double.Parse(item.Elevation[i]);
                 }
             }
 
