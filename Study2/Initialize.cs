@@ -3,39 +3,36 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
-using LongCross;
 using System;
 using System.Diagnostics;
 
-namespace Study2
+namespace PLC
 {
     public class Initialization : IExtensionApplication
-
     {
-
         public void Initialize()
-
         {
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
             ImportBlock();
             LoadLinetype();
         }
 
-        [CommandMethod("QE")]
-        public static void QE()
+        [CommandMethod("CrossDraw")]
+        public static void CrossDraw()
         {
-
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
+            PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ");
+            string path = ed.GetFileNameForOpen(POFO).StringResult;
             try
             {
-                string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+                string s = path;
                 Stopwatch stopwatch = new Stopwatch();
                 Cross x = new Cross(s);
                 ProgressMeter pm = new ProgressMeter();
                 pm.Start("Processing Cross");
-                pm.SetLimit(x.DataCollection.Count);
-                int limit = x.DataCollection.Count;
+                pm.SetLimit(x.Count);
+                int limit = x.Count;
                 //limit = 8;
                 stopwatch.Start();
                 for (int i = 0; i < limit; i++)
@@ -55,8 +52,6 @@ namespace Study2
                     ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
                 }
 
-                //Doc.SendStringToExecute("zoom E ", true, false, false);
-                //ed.Command("XCLIPFRAME", "0", "pdmode", "3");
                 Application.SetSystemVariable("XCLIPFRAME", 0);
                 Application.SetSystemVariable("PDMODE", 3);
                 pm.Stop();
@@ -68,8 +63,52 @@ namespace Study2
                 ed.WriteMessage(e.Message);
                 throw;
             }
+        }
 
+        [CommandMethod("QE")]
+        public static void QE()
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+            try
+            {
+                string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+                Stopwatch stopwatch = new Stopwatch();
+                Cross x = new Cross(s);
+                ProgressMeter pm = new ProgressMeter();
+                pm.Start("Processing Cross");
+                pm.SetLimit(x.Count);
+                int limit = x.Count;
+                //limit = 8;
+                stopwatch.Start();
+                for (int i = 0; i < limit; i++)
+                {
+                    x.Draw(i);
+                    x.Place(i);
+                    pm.MeterProgress();
+                }
 
+                if (x.crossError.Split(',').Length != 0)
+                {
+                    ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
+        $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+                }
+                else
+                {
+                    ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+                }
+
+                Application.SetSystemVariable("XCLIPFRAME", 0);
+                Application.SetSystemVariable("PDMODE", 3);
+                pm.Stop();
+                stopwatch.Stop();
+                pm.Dispose();
+            }
+            catch (System.Exception e)
+            {
+                ed.WriteMessage(e.Message);
+                throw;
+            }
         }
 
         [CommandMethod("SelectObjectsByCrossingWindow")]
@@ -228,7 +267,6 @@ namespace Study2
 
                 tx.Commit();
             }
-
         }
 
         private void ImportBlock()
@@ -262,10 +300,7 @@ namespace Study2
         public void Terminate()
 
         {
-
             Console.WriteLine("Cleaning up...");
-
         }
-
     }
 }

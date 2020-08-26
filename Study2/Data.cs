@@ -1,8 +1,6 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-
 
 public class Data
 {
@@ -24,8 +22,13 @@ public class Data
     public double BoundRight { get; set; }
     public string Bangunan { get; set; }
     public string TipeBangunan { get; set; }
-    public List<Data> DataCollection = new List<Data>();
-    public void GetData(string Path)
+    private List<Data> DataCollection = new List<Data>();
+
+    public Data()
+    {
+    }
+
+    public List<Data> GetData(string Path)
     {
         using (TextFieldParser tfp = new TextFieldParser(Path))
         {
@@ -45,13 +48,12 @@ public class Data
             int limit = ls.Count;
             for (int i = 0; i < limit; i = i + 3)
             {
-#pragma warning disable IDE0017 // Simplify object initialization
-                Data d = new Data();
-#pragma warning restore IDE0017 // Simplify object initialization
-
-                d.Elevation = ls[i].Split(new char[] { ',' }).ToList();
-                d.Distance = ls[i + 1].Split(new char[] { ',' }).ToList();
-                d.Description = ls[i + 2].Split(new char[] { ',' }).ToList();
+                Data d = new Data
+                {
+                    Elevation = new List<string>(ls[i].Split(new char[] { ',' })),
+                    Distance = new List<string>(ls[i + 1].Split(new char[] { ',' })),
+                    Description = new List<string>(ls[i + 2].Split(new char[] { ',' }))
+                };
                 d.NamaPatok = d.Elevation[0];
                 d.KX = double.Parse(d.Elevation[1]);
                 d.KY = double.Parse(d.Elevation[2]);
@@ -76,17 +78,16 @@ public class Data
                     d.Description.RemoveRange(m, n - m);
                     d.Distance.RemoveRange(m, n - m);
                 }
-
                 DataCollection.Add(d);
             }
-
         }
-        Revamp();
-
+        return Revamp(DataCollection);
     }
-    public void Revamp()
+
+    public List<Data> Revamp(List<Data> y)
     {
-        foreach (Data item in DataCollection)
+        List<Data> x = y;
+        foreach (Data item in x)
         {
             for (int i = 0; i < item.Elevation.Count; i++)
             {
@@ -114,11 +115,7 @@ public class Data
                     item.ElvMax = double.Parse(item.Elevation[i]);
                 }
             }
-
-
         }
-
+        return x;
     }
 }
-
-
