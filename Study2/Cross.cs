@@ -4,7 +4,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
-
+using static Utilities;
 public class Cross
 
 {
@@ -16,7 +16,6 @@ public class Cross
 
     public string crossError;
     public int Count => DataCollection.Count;
-
     public Cross(string Path)
     {
         Data d = new Data();
@@ -45,6 +44,21 @@ public class Cross
                         if (ip == -1 || (Desc.FindIndex(s => s.Contains("D")) == -1))
                         {
                             crossError += DataCollection[CrossNumber].NamaPatok + ", ";
+                        }
+
+                        using (Polyline PL = new Polyline())
+                        {
+                            var x = DataCollection[CrossNumber];
+                            var UL = new Point2d(x.MinDist, x.MaxElv);
+                            var UR = new Point2d(x.MaxDist, x.MaxElv);
+                            var DR = new Point2d(x.MaxDist, x.MinElv);
+                            var DL = new Point2d(x.MinDist, x.MinElv);
+                            PL.AddVertexAt(0, UL, 0, 0, 0);
+                            PL.AddVertexAt(1, UR, 0, 0, 0);
+                            PL.AddVertexAt(2, DR, 0, 0, 0);
+                            PL.AddVertexAt(3, DL, 0, 0, 0);
+                            PL.Closed = true;
+                            btr.AppendEntity(PL);
                         }
 
                         //Pembuatan Cross
@@ -131,18 +145,23 @@ public class Cross
                         }
 
                         //MID POINT
-                        if (!(Desc.FindIndex(s => s.Contains("D")) == -1))
+                        if (DataCollection[CrossNumber].PunyaPatok == true)
                         {
                             //ds = dasar start
                             //de = dasar end
-                            int ds = Desc.FindIndex(s => s.Contains("D"));
-                            int de = Desc.FindIndex(ds + 1, s => s.Contains("D"));
+                            //int ds = Desc.FindIndex(s => s.Contains("D"));
+                            //int de = Desc.FindIndex(ds + 1, s => s.Contains("D"));
+
+
+                            //Point3d StartPoint = new Point3d(Dist[ds], Elev[ds], 0);
+                            //Point3d EndPoint = new Point3d(Dist[de], Elev[de], 0);
+
+                            //Vector3d v = StartPoint.GetVectorTo(EndPoint);
+                            //Point3d mid = new Point3d(Dist[ds], Elev[ds], 0) + v * 0.5;
                             Point3dCollection points = new Point3dCollection();
-                            Vector3d v = new Point3d(Dist[ds], Elev[ds], 0).GetVectorTo(new Point3d(Dist[de], Elev[de], 0));
-                            Point3d mid = new Point3d(Dist[ds], Elev[ds], 0) + v * 0.5;
                             using (Line CL = new Line())
                             {
-                                CL.StartPoint = new Point3d(mid.X, mid.Y, 0);
+                                CL.StartPoint = DataCollection[CrossNumber].MidPoint;
                                 CL.IntersectWith(crossLine, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero);
                                 DataCollection[CrossNumber].ElvAsDasar = points[0].Y;
                                 DataCollection[CrossNumber].DistAsDasar = points[0].X;
@@ -151,36 +170,6 @@ public class Cross
                             {
                                 c.Position = points[0];
                                 btr.AppendEntity(c);
-                            }
-                            using (DBText tx = new DBText())
-                            {
-                                tx.Position = new Point3d(mid.X, mid.Y - 2.5, 0);
-                                tx.Height = 1.5;
-                                tx.ColorIndex = 3;
-                                tx.TextString = DataCollection[CrossNumber].NamaPatok;
-                                btr.AppendEntity(tx);
-                            }
-
-                            //btr.Origin = new Point3d(DataCollection[CrossNumber].BoundLeft, mid.Y, 0);
-                        }
-                        else if (!(ip == -1))
-                        {
-                            //btr.Origin = new Point3d(Dist[ip], Elev[ip], 0);
-                            using (DBText tx = new DBText())
-                            {
-                                tx.Position = new Point3d(Dist[ip], Elev[ip], 0);
-                                tx.TextString = DataCollection[CrossNumber].NamaPatok;
-                                btr.AppendEntity(tx);
-                            }
-                        }
-                        else
-                        {
-                            //btr.Origin = new Point3d(0, 0, 0);
-                            using (DBText tx = new DBText())
-                            {
-                                tx.Position = new Point3d(0, 0, 0);
-                                tx.TextString = DataCollection[CrossNumber].NamaPatok;
-                                btr.AppendEntity(tx);
                             }
                         }
 
@@ -201,7 +190,7 @@ public class Cross
                         }
 
                         // Set the insertion point for the block
-                        btr.Origin = new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
+                        btr.Origin = new Point3d(Dist[0],Elev[0], 0);
                         //btr.AppendEntity(crossLine);
                         crossLine.Dispose();
                     }
@@ -220,7 +209,7 @@ public class Cross
                         Point2dCollection ptCol = new Point2dCollection
                             {
                                 new Point2d(btr.Origin.X + 5.5, btr.Origin.Y),
-                                new Point2d(btr.Origin.X + 5.5 + 30, DataCollection[CrossNumber].ElvMax + 0.2)
+                                new Point2d(btr.Origin.X + 5.5 + 30, DataCollection[CrossNumber].MaxElv + 0.2)
                             };
 
                         Vector3d normal;
@@ -244,51 +233,51 @@ public class Cross
                             btr.AppendEntity(brf);
                             tr.AddNewlyCreatedDBObject(brf, true);
 
-                            using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
-                            {
-                                Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
-                   new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
-                                filter.Definition = filterDef;
+                   //         using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
+                   //         {
+                   //             Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
+                   //new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
+                   //             filter.Definition = filterDef;
 
-                                // Define the name of the extension dictionary and entry name
-                                string dictName = "ACAD_FILTER";
-                                string spName = "SPATIAL";
+                   //             // Define the name of the extension dictionary and entry name
+                   //             string dictName = "ACAD_FILTER";
+                   //             string spName = "SPATIAL";
 
-                                // Check to see if the Extension Dictionary exists, if not create it
-                                if (brf.ExtensionDictionary.IsNull)
-                                {
-                                    brf.CreateExtensionDictionary();
-                                }
+                   //             // Check to see if the Extension Dictionary exists, if not create it
+                   //             if (brf.ExtensionDictionary.IsNull)
+                   //             {
+                   //                 brf.CreateExtensionDictionary();
+                   //             }
 
-                                // Open the Extension Dictionary for write
-                                DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
+                   //             // Open the Extension Dictionary for write
+                   //             DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
 
-                                // Check to see if the dictionary for clipped boundaries exists,
-                                // and add the spatial filter to the dictionary
-                                if (extDict.Contains(dictName))
-                                {
-                                    DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
+                   //             // Check to see if the dictionary for clipped boundaries exists,
+                   //             // and add the spatial filter to the dictionary
+                   //             if (extDict.Contains(dictName))
+                   //             {
+                   //                 DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
 
-                                    if (filterDict.Contains(spName))
-                                    {
-                                        filterDict.Remove(spName);
-                                    }
+                   //                 if (filterDict.Contains(spName))
+                   //                 {
+                   //                     filterDict.Remove(spName);
+                   //                 }
 
-                                    filterDict.SetAt(spName, filter);
-                                }
-                                else
-                                {
-                                    using (DBDictionary filterDict = new DBDictionary())
-                                    {
-                                        extDict.SetAt(dictName, filterDict);
+                   //                 filterDict.SetAt(spName, filter);
+                   //             }
+                   //             else
+                   //             {
+                   //                 using (DBDictionary filterDict = new DBDictionary())
+                   //                 {
+                   //                     extDict.SetAt(dictName, filterDict);
 
-                                        tr.AddNewlyCreatedDBObject(filterDict, true);
-                                        filterDict.SetAt(spName, filter);
-                                    }
-                                }
+                   //                     tr.AddNewlyCreatedDBObject(filterDict, true);
+                   //                     filterDict.SetAt(spName, filter);
+                   //                 }
+                   //             }
 
-                                tr.AddNewlyCreatedDBObject(filter, true);
-                            }
+                   //             tr.AddNewlyCreatedDBObject(filter, true);
+                   //         }
                         }
 
                         //Tambah Block Legend
@@ -339,10 +328,6 @@ public class Cross
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        throw new System.ArgumentException("Duplikasi nama patok", "ERROR, Bikin dokumen baru");
                     }
                     //BLOCK TABLE RECORD
                 }

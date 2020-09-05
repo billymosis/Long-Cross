@@ -33,7 +33,7 @@ namespace PLC
                 pm.Start("Processing Cross");
                 pm.SetLimit(x.Count);
                 int limit = x.Count;
-                //limit = 8;
+                limit = 8;
                 stopwatch.Start();
                 for (int i = 0; i < limit; i++)
                 {
@@ -70,8 +70,7 @@ namespace PLC
         {
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
-            try
-            {
+
                 string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
                 Stopwatch stopwatch = new Stopwatch();
                 Cross x = new Cross(s);
@@ -103,12 +102,7 @@ namespace PLC
                 pm.Stop();
                 stopwatch.Stop();
                 pm.Dispose();
-            }
-            catch (System.Exception e)
-            {
-                ed.WriteMessage(e.Message);
-                throw;
-            }
+            
         }
 
         [CommandMethod("SelectObjectsByCrossingWindow")]
