@@ -2,6 +2,7 @@
 using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
+using static Utilities;
 
 public class Data
 {
@@ -11,6 +12,7 @@ public class Data
 
     public bool PunyaPatok { get; set; }
     public Point3d MidPoint { get; set; }
+    public Point2d Intersect { get; set; }
 
     public double TanggulKiri { get; set; }
     public double TanggulKanan { get; set; }
@@ -144,6 +146,19 @@ public class Data
                     Point3d EndPoint = new Point3d(double.Parse(item.Distance[de]), double.Parse(item.Elevation[de]), 0);
                     Vector3d v = StartPoint.GetVectorTo(EndPoint);
                     item.MidPoint = new Point3d(double.Parse(item.Distance[ds]), double.Parse(item.Elevation[ds]), 0) + v * 0.5;
+                    if (ds - de == -1)
+                    {
+                        item.Intersect = FindIntersection2d(item.MidPoint, new Point3d(item.MidPoint.X, item.MinElv, 0), StartPoint, EndPoint);
+                    }
+                    else
+                    {
+                        int qq = item.Distance.ConvertAll(k => double.Parse(k)).FindIndex(l => l >= item.MidPoint.X);
+                        var qw = item.Distance.ConvertAll(k => double.Parse(k)).FindLastIndex(l => l <= item.MidPoint.X);
+                        Point3d q = new Point3d(double.Parse(item.Distance[qw]), double.Parse(item.Elevation[qw]), 0);
+                        Point3d w = new Point3d(double.Parse(item.Distance[qq]), double.Parse(item.Elevation[qq]), 0);
+                        item.Intersect = FindIntersection2d(item.MidPoint, new Point3d(item.MidPoint.X, item.MinElv, 0), q, w);
+                    }
+
                 }
                 else
                 {

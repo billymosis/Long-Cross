@@ -15,6 +15,12 @@ public class Cross
     private List<Data> DataCollection;
 
     public string crossError;
+    private readonly double panjangPotongan = 0.5;
+    private readonly double panjangBoundary = 10;
+
+
+
+
     public int Count => DataCollection.Count;
     public Cross(string Path)
     {
@@ -24,6 +30,15 @@ public class Cross
 
     public void Draw(int CrossNumber)
     {
+        List<double> Elev = DataCollection[CrossNumber].Elevation.ConvertAll(x => double.Parse(x));
+        List<double> Dist = DataCollection[CrossNumber].Distance.ConvertAll(x => double.Parse(x));
+        List<string> Desc = DataCollection[CrossNumber].Description;
+        double boundaryXLeft = DataCollection[CrossNumber].MidPoint.X - (panjangBoundary / 2);
+        double boundaryXRight = DataCollection[CrossNumber].MidPoint.X + (panjangBoundary / 2);
+        int first = Dist.FindIndex(s => s > boundaryXLeft);
+        int last = Dist.FindLastIndex(s => s < boundaryXRight);
+
+
         using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
         {
             using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
@@ -34,9 +49,7 @@ public class Cross
                     {
                         bt.Add(btr);
                         btr.Name = "_" + DataCollection[CrossNumber].NamaPatok + "_";
-                        List<double> Elev = DataCollection[CrossNumber].Elevation.ConvertAll(x => double.Parse(x));
-                        List<double> Dist = DataCollection[CrossNumber].Distance.ConvertAll(x => double.Parse(x));
-                        List<string> Desc = DataCollection[CrossNumber].Description;
+
                         int limit = Elev.Count;
                         int ip = Dist.IndexOf(0);
 
@@ -45,18 +58,35 @@ public class Cross
                         {
                             crossError += DataCollection[CrossNumber].NamaPatok + ", ";
                         }
-
+                        //GARIS PUTIH BOUNDARY ORIGINAL
                         using (Polyline PL = new Polyline())
                         {
-                            var x = DataCollection[CrossNumber];
-                            var UL = new Point2d(x.MinDist, x.MaxElv);
-                            var UR = new Point2d(x.MaxDist, x.MaxElv);
-                            var DR = new Point2d(x.MaxDist, x.MinElv);
-                            var DL = new Point2d(x.MinDist, x.MinElv);
+                            Data x = DataCollection[CrossNumber];
+                            Point2d UL = new Point2d(x.MinDist, x.MaxElv);
+                            Point2d UR = new Point2d(x.MaxDist, x.MaxElv);
+                            Point2d DR = new Point2d(x.MaxDist, x.MinElv);
+                            Point2d DL = new Point2d(x.MinDist, x.MinElv);
                             PL.AddVertexAt(0, UL, 0, 0, 0);
                             PL.AddVertexAt(1, UR, 0, 0, 0);
                             PL.AddVertexAt(2, DR, 0, 0, 0);
                             PL.AddVertexAt(3, DL, 0, 0, 0);
+                            PL.Closed = true;
+                            btr.AppendEntity(PL);
+                        }
+
+                        //GARIS MERAH BOUNDARY MODIFIED
+                        using (Polyline PL = new Polyline())
+                        {
+                            Data x = DataCollection[CrossNumber];
+                            Point2d UL = new Point2d(boundaryXLeft, x.MaxElv);
+                            Point2d UR = new Point2d(boundaryXRight, x.MaxElv);
+                            Point2d DR = new Point2d(boundaryXRight, x.MinElv);
+                            Point2d DL = new Point2d(boundaryXLeft, x.MinElv);
+                            PL.AddVertexAt(0, UL, 0, 0, 0);
+                            PL.AddVertexAt(1, UR, 0, 0, 0);
+                            PL.AddVertexAt(2, DR, 0, 0, 0);
+                            PL.AddVertexAt(3, DL, 0, 0, 0);
+                            PL.ColorIndex = 1;
                             PL.Closed = true;
                             btr.AppendEntity(PL);
                         }
@@ -67,6 +97,10 @@ public class Cross
                         for (int i = 0; i < limit; i++)
                         {
                             crossLine.AddVertexAt(i, new Point2d(Dist[i], Elev[i]), 0, 0, 0);
+                        }
+
+                        for (int i = first; i < last; i++)
+                        {
                             if (!(i == limit - 1))
                             {
                                 using (Line Jalan = new Line())
@@ -147,28 +181,9 @@ public class Cross
                         //MID POINT
                         if (DataCollection[CrossNumber].PunyaPatok == true)
                         {
-                            //ds = dasar start
-                            //de = dasar end
-                            //int ds = Desc.FindIndex(s => s.Contains("D"));
-                            //int de = Desc.FindIndex(ds + 1, s => s.Contains("D"));
-
-
-                            //Point3d StartPoint = new Point3d(Dist[ds], Elev[ds], 0);
-                            //Point3d EndPoint = new Point3d(Dist[de], Elev[de], 0);
-
-                            //Vector3d v = StartPoint.GetVectorTo(EndPoint);
-                            //Point3d mid = new Point3d(Dist[ds], Elev[ds], 0) + v * 0.5;
-                            Point3dCollection points = new Point3dCollection();
-                            using (Line CL = new Line())
-                            {
-                                CL.StartPoint = DataCollection[CrossNumber].MidPoint;
-                                CL.IntersectWith(crossLine, Intersect.ExtendThis, points, IntPtr.Zero, IntPtr.Zero);
-                                DataCollection[CrossNumber].ElvAsDasar = points[0].Y;
-                                DataCollection[CrossNumber].DistAsDasar = points[0].X;
-                            }
                             using (DBPoint c = new DBPoint())
                             {
-                                c.Position = points[0];
+                                c.Position = new Point3d(DataCollection[CrossNumber].Intersect.X, DataCollection[CrossNumber].Intersect.Y, 0);
                                 btr.AppendEntity(c);
                             }
                         }
@@ -189,9 +204,12 @@ public class Cross
                             }
                         }
 
+
+
                         // Set the insertion point for the block
-                        btr.Origin = new Point3d(Dist[0],Elev[0], 0);
-                        //btr.AppendEntity(crossLine);
+                        //btr.Origin = new Point3d(boundaryXLeft - 6, DataCollection[CrossNumber].Datum - 2, 0);
+                        btr.Origin = new Point3d(0,0,0);
+                        btr.AppendEntity(crossLine);
                         crossLine.Dispose();
                     }
                 }
@@ -204,12 +222,106 @@ public class Cross
 
                         bt.Add(btr);
                         btr.Name = DataCollection[CrossNumber].NamaPatok;
-                        btr.Origin = new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
+
+
+                        //POTONGAN KIRI
+                        if (first != 0)
+                        {
+                            using (Line L = new Line())
+                            {
+                                L.StartPoint = new Point3d(Dist[0], Elev[0], 0);
+                                Point3d TargetPoint = new Point3d(Dist[1], Elev[1], 0);
+                                double delta = Math.Abs(L.StartPoint.X - TargetPoint.X);
+                                Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
+                                double b = panjangPotongan / delta;
+                                L.EndPoint = L.StartPoint + v * b;
+                                Vector3d Move = L.EndPoint.GetVectorTo(new Point3d(boundaryXLeft, L.EndPoint.Y, 0));
+                                L.TransformBy(Matrix3d.Displacement(Move));
+                                L.ColorIndex = 5;
+                                btr.AppendEntity(L);
+                                using (Line POT = new Line())
+                                {
+                                    POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
+                                    POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
+                                    btr.AppendEntity(POT);
+                                }
+                            }
+                            if (Dist[first] < boundaryXRight)
+                            {
+                                using (Line L = new Line())
+                                {
+                                    int k = Dist.FindLastIndex(s => s <= boundaryXLeft);
+                                    L.StartPoint = new Point3d(Dist[first], Elev[first], 0);
+                                    Point3d TargetPoint = new Point3d(Dist[k], Elev[k], 0);
+                                    double delta = Math.Abs(L.StartPoint.X - TargetPoint.X);
+                                    Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
+                                    double b = ((boundaryXLeft) - Dist[first]) / delta;
+                                    L.EndPoint = L.StartPoint - v * b;
+                                    Vector3d Move = L.StartPoint.GetVectorTo(new Point3d(Dist[first], Elev[first], 0));
+                                    L.TransformBy(Matrix3d.Displacement(Move));
+                                    L.ColorIndex = 5;
+                                    btr.AppendEntity(L);
+                                    using (Line POT = new Line())
+                                    {
+                                        POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
+                                        POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
+                                        btr.AppendEntity(POT);
+                                    }
+                                }
+                            }
+
+
+                            //POTONGAN KANAN
+                            using (Line L = new Line())
+                            {
+                                L.StartPoint = new Point3d(Dist[Dist.Count - 1], Elev[Dist.Count - 1], 0);
+                                Point3d TargetPoint = new Point3d(Dist[Dist.Count - 2], Elev[Dist.Count - 2], 0);
+                                double delta = L.StartPoint.X - TargetPoint.X;
+                                Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
+                                double b = panjangPotongan / delta;
+                                L.EndPoint = L.StartPoint + v * b;
+                                Vector3d Move = L.EndPoint.GetVectorTo(new Point3d(boundaryXRight, L.EndPoint.Y, 0));
+                                L.TransformBy(Matrix3d.Displacement(Move));
+                                btr.AppendEntity(L);
+                                using (Line POT = new Line())
+                                {
+                                    POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
+                                    POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
+                                    btr.AppendEntity(POT);
+                                }
+                            }
+                            if (Dist[last] > boundaryXLeft)
+                            {
+                                using (Line L = new Line())
+                                {
+                                    int k = Dist.FindIndex(s => s >= boundaryXRight);
+                                    L.StartPoint = new Point3d(Dist[last], Elev[last], 0);
+                                    Point3d TargetPoint = new Point3d(Dist[k], Elev[k], 0);
+                                    double delta = L.StartPoint.X - TargetPoint.X;
+                                    Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
+                                    double b = Math.Abs(boundaryXRight - L.StartPoint.X) / delta;
+                                    L.EndPoint = L.StartPoint - v * b;
+                                    Vector3d Move = L.StartPoint.GetVectorTo(new Point3d(Dist[last], Elev[last], 0));
+                                    L.TransformBy(Matrix3d.Displacement(Move));
+                                    L.ColorIndex = 3;
+                                    btr.AppendEntity(L);
+                                    using (Line POT = new Line())
+                                    {
+                                        POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
+                                        POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
+                                        POT.ColorIndex = 3;
+                                        btr.AppendEntity(POT);
+                                    }
+                                }
+
+                            }
+                        }
+
 
                         Point2dCollection ptCol = new Point2dCollection
                             {
-                                new Point2d(btr.Origin.X + 5.5, btr.Origin.Y),
-                                new Point2d(btr.Origin.X + 5.5 + 30, DataCollection[CrossNumber].MaxElv + 0.2)
+                                new Point2d(boundaryXLeft, btr.Origin.Y),
+                                new Point2d(boundaryXRight, DataCollection[CrossNumber].MaxElv + 0.2)
                             };
 
                         Vector3d normal;
@@ -228,61 +340,61 @@ public class Cross
 
                         //Tambah Block Cross
 
-                        using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0), bt["_" + DataCollection[CrossNumber].NamaPatok + "_"]))
+                        using (BlockReference brf = new BlockReference(btr.Origin, bt["_" + DataCollection[CrossNumber].NamaPatok + "_"]))
                         {
                             btr.AppendEntity(brf);
                             tr.AddNewlyCreatedDBObject(brf, true);
 
-                   //         using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
-                   //         {
-                   //             Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
-                   //new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
-                   //             filter.Definition = filterDef;
+                            using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
+                            {
+                                Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
+                   new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
+                                filter.Definition = filterDef;
 
-                   //             // Define the name of the extension dictionary and entry name
-                   //             string dictName = "ACAD_FILTER";
-                   //             string spName = "SPATIAL";
+                                // Define the name of the extension dictionary and entry name
+                                string dictName = "ACAD_FILTER";
+                                string spName = "SPATIAL";
 
-                   //             // Check to see if the Extension Dictionary exists, if not create it
-                   //             if (brf.ExtensionDictionary.IsNull)
-                   //             {
-                   //                 brf.CreateExtensionDictionary();
-                   //             }
+                                // Check to see if the Extension Dictionary exists, if not create it
+                                if (brf.ExtensionDictionary.IsNull)
+                                {
+                                    brf.CreateExtensionDictionary();
+                                }
 
-                   //             // Open the Extension Dictionary for write
-                   //             DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
+                                // Open the Extension Dictionary for write
+                                DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
 
-                   //             // Check to see if the dictionary for clipped boundaries exists,
-                   //             // and add the spatial filter to the dictionary
-                   //             if (extDict.Contains(dictName))
-                   //             {
-                   //                 DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
+                                // Check to see if the dictionary for clipped boundaries exists,
+                                // and add the spatial filter to the dictionary
+                                if (extDict.Contains(dictName))
+                                {
+                                    DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
 
-                   //                 if (filterDict.Contains(spName))
-                   //                 {
-                   //                     filterDict.Remove(spName);
-                   //                 }
+                                    if (filterDict.Contains(spName))
+                                    {
+                                        filterDict.Remove(spName);
+                                    }
 
-                   //                 filterDict.SetAt(spName, filter);
-                   //             }
-                   //             else
-                   //             {
-                   //                 using (DBDictionary filterDict = new DBDictionary())
-                   //                 {
-                   //                     extDict.SetAt(dictName, filterDict);
+                                    filterDict.SetAt(spName, filter);
+                                }
+                                else
+                                {
+                                    using (DBDictionary filterDict = new DBDictionary())
+                                    {
+                                        extDict.SetAt(dictName, filterDict);
 
-                   //                     tr.AddNewlyCreatedDBObject(filterDict, true);
-                   //                     filterDict.SetAt(spName, filter);
-                   //                 }
-                   //             }
+                                        tr.AddNewlyCreatedDBObject(filterDict, true);
+                                        filterDict.SetAt(spName, filter);
+                                    }
+                                }
 
-                   //             tr.AddNewlyCreatedDBObject(filter, true);
-                   //         }
+                                tr.AddNewlyCreatedDBObject(filter, true);
+                            }
                         }
 
                         //Tambah Block Legend
 
-                        using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].DistAsDasar - 20.5, DataCollection[CrossNumber].Datum - 2, 0), bt["Block1"]))
+                        using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].Intersect.X - 20.5, DataCollection[CrossNumber].Datum - 2, 0), bt["Block1"]))
                         {
                             btr.AppendEntity(brf);
                             tr.AddNewlyCreatedDBObject(brf, true);
@@ -330,6 +442,7 @@ public class Cross
                         }
                     }
                     //BLOCK TABLE RECORD
+                    btr.Origin = new Point3d(DataCollection[CrossNumber].Intersect.X - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
                 }
                 //BLOCK TABLE
             }
