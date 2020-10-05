@@ -20,12 +20,16 @@ public class Data
     public double ElvAsDasar { get; set; }
     public double DistAsDasar { get; set; }
     public string NamaPatok { get; set; }
+    // Koordinat
     public double KX { get; set; }
     public double KY { get; set; }
     public double KZ { get; set; }
+
+
     public double Datum { get; set; }
     public double MaxDist { get; set; }
     public double MinDist { get; set; }
+    public double TotalLength { get; set; }
     public double MaxElv { get; set; }
     public double MinElv { get; set; }
     public string Bangunan { get; set; }
@@ -136,6 +140,10 @@ public class Data
                     item.MinDist = double.Parse(item.Distance[i]);
                 }
 
+                item.TotalLength = Math.Abs(item.MaxDist - item.MinDist);
+
+
+                //Mid Point
                 if (item.Description.FindIndex(s => s.Contains("D")) != -1)
                 {
                     item.PunyaPatok = true;
@@ -153,7 +161,7 @@ public class Data
                     else
                     {
                         int qq = item.Distance.ConvertAll(k => double.Parse(k)).FindIndex(l => l >= item.MidPoint.X);
-                        var qw = item.Distance.ConvertAll(k => double.Parse(k)).FindLastIndex(l => l <= item.MidPoint.X);
+                        int qw = item.Distance.ConvertAll(k => double.Parse(k)).FindLastIndex(l => l <= item.MidPoint.X);
                         Point3d q = new Point3d(double.Parse(item.Distance[qw]), double.Parse(item.Elevation[qw]), 0);
                         Point3d w = new Point3d(double.Parse(item.Distance[qq]), double.Parse(item.Elevation[qq]), 0);
                         item.Intersect = FindIntersection2d(item.MidPoint, new Point3d(item.MidPoint.X, item.MinElv, 0), q, w);

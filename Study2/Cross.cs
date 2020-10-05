@@ -16,7 +16,7 @@ public class Cross
 
     public string crossError;
     private readonly double panjangPotongan = 0.5;
-    private readonly double panjangBoundary = 10;
+    private readonly double panjangBoundary = 20;
 
 
 
@@ -35,8 +35,12 @@ public class Cross
         List<string> Desc = DataCollection[CrossNumber].Description;
         double boundaryXLeft = DataCollection[CrossNumber].MidPoint.X - (panjangBoundary / 2);
         double boundaryXRight = DataCollection[CrossNumber].MidPoint.X + (panjangBoundary / 2);
-        int first = Dist.FindIndex(s => s > boundaryXLeft);
-        int last = Dist.FindLastIndex(s => s < boundaryXRight);
+        int first, last;
+        //FIRST INDEX PERTAMA SETELAH BOUNDARY KIRI
+        //LAST INDEX PERTAMA SEBELUM BOUNDARY KANAN
+        first = Dist.FindIndex(s => s > boundaryXLeft);
+        last = Dist.FindLastIndex(s => s < boundaryXRight);
+
 
 
         using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
@@ -58,21 +62,21 @@ public class Cross
                         {
                             crossError += DataCollection[CrossNumber].NamaPatok + ", ";
                         }
-                        //GARIS PUTIH BOUNDARY ORIGINAL
-                        using (Polyline PL = new Polyline())
-                        {
-                            Data x = DataCollection[CrossNumber];
-                            Point2d UL = new Point2d(x.MinDist, x.MaxElv);
-                            Point2d UR = new Point2d(x.MaxDist, x.MaxElv);
-                            Point2d DR = new Point2d(x.MaxDist, x.MinElv);
-                            Point2d DL = new Point2d(x.MinDist, x.MinElv);
-                            PL.AddVertexAt(0, UL, 0, 0, 0);
-                            PL.AddVertexAt(1, UR, 0, 0, 0);
-                            PL.AddVertexAt(2, DR, 0, 0, 0);
-                            PL.AddVertexAt(3, DL, 0, 0, 0);
-                            PL.Closed = true;
-                            btr.AppendEntity(PL);
-                        }
+                        ////GARIS PUTIH BOUNDARY ORIGINAL
+                        //using (Polyline PL = new Polyline())
+                        //{
+                        //    Data x = DataCollection[CrossNumber];
+                        //    Point2d UL = new Point2d(x.MinDist, x.MaxElv);
+                        //    Point2d UR = new Point2d(x.MaxDist, x.MaxElv);
+                        //    Point2d DR = new Point2d(x.MaxDist, x.MinElv);
+                        //    Point2d DL = new Point2d(x.MinDist, x.MinElv);
+                        //    PL.AddVertexAt(0, UL, 0, 0, 0);
+                        //    PL.AddVertexAt(1, UR, 0, 0, 0);
+                        //    PL.AddVertexAt(2, DR, 0, 0, 0);
+                        //    PL.AddVertexAt(3, DL, 0, 0, 0);
+                        //    PL.Closed = true;
+                        //    btr.AppendEntity(PL);
+                        //}
 
                         //GARIS MERAH BOUNDARY MODIFIED
                         using (Polyline PL = new Polyline())
@@ -208,7 +212,7 @@ public class Cross
 
                         // Set the insertion point for the block
                         //btr.Origin = new Point3d(boundaryXLeft - 6, DataCollection[CrossNumber].Datum - 2, 0);
-                        btr.Origin = new Point3d(0,0,0);
+                        btr.Origin = new Point3d(0, 0, 0);
                         btr.AppendEntity(crossLine);
                         crossLine.Dispose();
                     }
@@ -223,31 +227,35 @@ public class Cross
                         bt.Add(btr);
                         btr.Name = DataCollection[CrossNumber].NamaPatok;
 
-
-                        //POTONGAN KIRI
-                        if (first != 0)
+                        if (DataCollection[CrossNumber].TotalLength > 0) //first != 0)
                         {
-                            using (Line L = new Line())
+                            //POTONGAN KIRI
+
+
+                            if ((Math.Abs(Dist[1] - Dist[0]) > panjangPotongan) && (DataCollection[CrossNumber].MinDist < boundaryXLeft))
                             {
-                                L.StartPoint = new Point3d(Dist[0], Elev[0], 0);
-                                Point3d TargetPoint = new Point3d(Dist[1], Elev[1], 0);
-                                double delta = Math.Abs(L.StartPoint.X - TargetPoint.X);
-                                Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
-                                double b = panjangPotongan / delta;
-                                L.EndPoint = L.StartPoint + v * b;
-                                Vector3d Move = L.EndPoint.GetVectorTo(new Point3d(boundaryXLeft, L.EndPoint.Y, 0));
-                                L.TransformBy(Matrix3d.Displacement(Move));
-                                L.ColorIndex = 5;
-                                btr.AppendEntity(L);
-                                using (Line POT = new Line())
+                                //POTONGAN LUAR
+                                using (Line L = new Line())
                                 {
-                                    POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
-                                    POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
-                                    btr.AppendEntity(POT);
+                                    L.StartPoint = new Point3d(Dist[0], Elev[0], 0);
+                                    Point3d TargetPoint = new Point3d(Dist[1], Elev[1], 0);
+                                    double delta = Math.Abs(L.StartPoint.X - TargetPoint.X);
+                                    Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
+                                    double b = panjangPotongan / delta;
+                                    L.EndPoint = L.StartPoint + v * b;
+                                    Vector3d Move = L.EndPoint.GetVectorTo(new Point3d(boundaryXLeft, L.EndPoint.Y, 0));
+                                    L.TransformBy(Matrix3d.Displacement(Move));
+                                    L.ColorIndex = 5;
+                                    btr.AppendEntity(L);
+                                    using (Line POT = new Line())
+                                    {
+                                        POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
+                                        POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
+                                        btr.AppendEntity(POT);
+                                    }
                                 }
-                            }
-                            if (Dist[first] < boundaryXRight)
-                            {
+
+                                //POTONGAN DALAM
                                 using (Line L = new Line())
                                 {
                                     int k = Dist.FindLastIndex(s => s <= boundaryXLeft);
@@ -269,29 +277,52 @@ public class Cross
                                     }
                                 }
                             }
+                            //POTONGAN EXTEND
+                            else
+                            {
+                                using (Line L = new Line())
+                                {
+                                    ed.WriteMessage("\n" + DataCollection[CrossNumber].NamaPatok + " EXTENDED");
+                                    L.StartPoint = new Point3d(Dist[first], Elev[first], 0);
+                                    L.EndPoint = new Point3d(boundaryXLeft, Elev[first], 0);
+                                    L.ColorIndex = 3;
+                                    btr.AppendEntity(L);
+                                    using (Circle c = new Circle())
+                                    {
+                                        c.Center = L.StartPoint;
+                                        c.Diameter = 3;
+                                        btr.AppendEntity(c);
+                                    }
+                                }
 
+                            }
 
                             //POTONGAN KANAN
-                            using (Line L = new Line())
+
+
+                            if ((Math.Abs(Dist[Dist.Count - 2] - Dist[Dist.Count - 1]) > panjangPotongan) && (DataCollection[CrossNumber].MaxDist > boundaryXRight))
                             {
-                                L.StartPoint = new Point3d(Dist[Dist.Count - 1], Elev[Dist.Count - 1], 0);
-                                Point3d TargetPoint = new Point3d(Dist[Dist.Count - 2], Elev[Dist.Count - 2], 0);
-                                double delta = L.StartPoint.X - TargetPoint.X;
-                                Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
-                                double b = panjangPotongan / delta;
-                                L.EndPoint = L.StartPoint + v * b;
-                                Vector3d Move = L.EndPoint.GetVectorTo(new Point3d(boundaryXRight, L.EndPoint.Y, 0));
-                                L.TransformBy(Matrix3d.Displacement(Move));
-                                btr.AppendEntity(L);
-                                using (Line POT = new Line())
+                                //POTONGAN LUAR
+                                using (Line L = new Line())
                                 {
-                                    POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
-                                    POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
-                                    btr.AppendEntity(POT);
+                                    L.StartPoint = new Point3d(Dist[Dist.Count - 1], Elev[Dist.Count - 1], 0);
+                                    Point3d TargetPoint = new Point3d(Dist[Dist.Count - 2], Elev[Dist.Count - 2], 0);
+                                    double delta = L.StartPoint.X - TargetPoint.X;
+                                    Vector3d v = L.StartPoint.GetVectorTo(TargetPoint);
+                                    double b = panjangPotongan / delta;
+                                    L.EndPoint = L.StartPoint + v * b;
+                                    Vector3d Move = L.EndPoint.GetVectorTo(new Point3d(boundaryXRight, L.EndPoint.Y, 0));
+                                    L.TransformBy(Matrix3d.Displacement(Move));
+                                    btr.AppendEntity(L);
+                                    using (Line POT = new Line())
+                                    {
+                                        POT.StartPoint = new Point3d(L.EndPoint.X - 0.05, L.EndPoint.Y - 0.05, 0);
+                                        POT.EndPoint = new Point3d(L.EndPoint.X + 0.05, L.EndPoint.Y + 0.05, 0);
+                                        btr.AppendEntity(POT);
+                                    }
+
                                 }
-                            }
-                            if (Dist[last] > boundaryXLeft)
-                            {
+                                //POTONGAN DALAM
                                 using (Line L = new Line())
                                 {
                                     int k = Dist.FindIndex(s => s >= boundaryXRight);
@@ -313,14 +344,32 @@ public class Cross
                                         btr.AppendEntity(POT);
                                     }
                                 }
+                            }
+                            //POTONGAN EXTEND
+                            else
+                            {
+
+                                using (Line L = new Line())
+                                {
+                                    //ed.WriteMessage("\n" + DataCollection[CrossNumber].NamaPatok + " EXTENDED");
+                                    L.StartPoint = new Point3d(Dist[last], Elev[last], 0);
+                                    L.EndPoint = new Point3d(boundaryXRight, Elev[last], 0);
+                                    L.ColorIndex = 3;
+                                    btr.AppendEntity(L);
+                                    using (Circle c = new Circle())
+                                    {
+                                        c.Center = L.StartPoint;
+                                        c.Diameter = 3;
+                                        btr.AppendEntity(c);
+                                    }
+                                }
 
                             }
                         }
 
-
                         Point2dCollection ptCol = new Point2dCollection
                             {
-                                new Point2d(boundaryXLeft, btr.Origin.Y),
+                                new Point2d(boundaryXLeft, DataCollection[CrossNumber].Datum - 2),
                                 new Point2d(boundaryXRight, DataCollection[CrossNumber].MaxElv + 0.2)
                             };
 
@@ -394,14 +443,15 @@ public class Cross
 
                         //Tambah Block Legend
 
-                        using (BlockReference brf = new BlockReference(new Point3d(DataCollection[CrossNumber].Intersect.X - 20.5, DataCollection[CrossNumber].Datum - 2, 0), bt["Block1"]))
+                        using (BlockReference brf = new BlockReference(new Point3d(0, 0, 0), bt["Block1"]))
                         {
+                            brf.Position = new Point3d(boundaryXLeft - panjangPotongan - brf.Bounds.Value.MaxPoint.X, DataCollection[CrossNumber].Datum - 2, 0);
                             btr.AppendEntity(brf);
                             tr.AddNewlyCreatedDBObject(brf, true);
-                            using (DBObjectCollection aaa = new DBObjectCollection())
+                            using (DBObjectCollection tempObject = new DBObjectCollection())
                             {
-                                brf.Explode(aaa);
-                                foreach (DBObject item in aaa)
+                                brf.Explode(tempObject);
+                                foreach (DBObject item in tempObject)
                                 {
                                     Entity c = item as Entity;
                                     btr.AppendEntity(c);
@@ -430,6 +480,7 @@ public class Cross
 
                                             case "_NAMAPATOK":
                                                 acAtt.TextString = DataCollection[CrossNumber].NamaPatok;
+                                                acAtt.Position = new Point3d(DataCollection[CrossNumber].MidPoint.X, acAtt.Position.Y, acAtt.Position.Z);
                                                 break;
 
                                             default:
@@ -439,10 +490,12 @@ public class Cross
                                     }
                                 }
                             }
+                            btr.Origin = brf.Position;
                         }
+
                     }
                     //BLOCK TABLE RECORD
-                    btr.Origin = new Point3d(DataCollection[CrossNumber].Intersect.X - 20.5, DataCollection[CrossNumber].Datum - 2, 0);
+
                 }
                 //BLOCK TABLE
             }

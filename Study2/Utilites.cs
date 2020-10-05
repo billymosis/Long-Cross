@@ -93,6 +93,22 @@ public static class Utilities
         return closest;
     }
 
+    public static double CR2D(double radians)
+    {
+        return (180 / Math.PI) * radians;
+    }
+
+    public static Point2d PolarPoints(Point2d pPt, double dAng, double dDist)
+    {
+        return new Point2d(pPt.X + dDist * Math.Cos(dAng),
+                             pPt.Y + dDist * Math.Sin(dAng));
+    }
+    public static Point3d PolarPoints(Point3d pPt, double dAng, double dDist)
+    {
+        return new Point3d(pPt.X + dDist * Math.Cos(dAng),
+                             pPt.Y + dDist * Math.Sin(dAng),
+                             pPt.Z);
+    }
 
 }
 

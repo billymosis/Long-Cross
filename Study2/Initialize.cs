@@ -4,6 +4,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace PLC
@@ -15,6 +16,61 @@ namespace PLC
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
             ImportBlock();
             LoadLinetype();
+        }
+        [CommandMethod("ae")]
+        public static void ae()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            using (Transaction tr = db.TransactionManager.StartTransaction())
+            {
+                PromptEntityOptions op = new PromptEntityOptions("\nSelect polyline :");
+                op.SetRejectMessage("Must be Polyline");
+                op.AddAllowedClass(typeof(Polyline), true);
+                op.AllowNone = false;
+                PromptEntityResult s = ed.GetEntity(op);
+                if (s.Status == PromptStatus.OK)
+                {
+                    Polyline ent = (Polyline)tr.GetObject(s.ObjectId, OpenMode.ForRead);
+                    Line drawLine = new Line();
+                    double length = ent.Length;
+                    double gap = length / 15.0;
+                    double dis = gap;
+                    //int run = ((int)gap); <- this is wrong and unusefull
+                    var curSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                    for (int i = 0; i < 14; i++)
+                    {
+                        Point3d p1 = ent.GetPointAtDist(dis);
+                        Vector3d ang = ent.GetFirstDerivative(ent.GetParameterAtPoint(p1));
+                        // scale the vector by 5.0 (so that it's 5 units length)
+                        ang = ang.GetNormal() * 5.0;
+                        // rotate the vector
+                        ang = ang.TransformBy(Matrix3d.Rotation(Math.PI / 2.0, ent.Normal, Point3d.Origin));
+                        // create a line by substracting and adding the vector to the point (displacing the point)
+                        Line line = new Line(p1 - ang, p1 + ang);
+                        curSpace.AppendEntity(line);
+                        tr.AddNewlyCreatedDBObject(line, true);
+                        dis = dis + gap;
+                    }
+                }
+                tr.Commit();
+            }
+        }
+
+        [CommandMethod("AW")]
+        public static void AW()
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+            string s = @"E:/AutoCAD Project/Study2/Study2/data/MK.csv";
+            Plan x = new Plan(s);
+            int limit = 50;
+            for (int i = 0; i < limit; i++)
+            {
+                x.Draw(i);
+            }
+
         }
 
         [CommandMethod("CrossDraw")]
@@ -65,44 +121,85 @@ namespace PLC
             }
         }
 
+        [CommandMethod("WR")]
+        public static void WR()
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+
+            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+            Stopwatch stopwatch = new Stopwatch();
+            Cross x = new Cross(s);
+            ProgressMeter pm = new ProgressMeter();
+            pm.Start("Processing Cross");
+            List<int> numbers = new List<int>() { 52,53,54,55 };
+            int limit = numbers.Count;
+            pm.SetLimit(limit);
+            stopwatch.Start();
+            for (int i = 0; i < limit; i++)
+            {
+                x.Draw(numbers[i]);
+                x.Place(numbers[i]);
+                pm.MeterProgress();
+            }
+
+            if (x.crossError != null && x.crossError.Split(',').Length != 0 )
+            {
+                ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
+    $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+            }
+            else
+            {
+                ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+            }
+
+            Application.SetSystemVariable("XCLIPFRAME", 0);
+            Application.SetSystemVariable("PDMODE", 3);
+            pm.Stop();
+            stopwatch.Stop();
+            pm.Dispose();
+
+        }
+
+
         [CommandMethod("QE")]
         public static void QE()
         {
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
 
-                string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
-                Stopwatch stopwatch = new Stopwatch();
-                Cross x = new Cross(s);
-                ProgressMeter pm = new ProgressMeter();
-                pm.Start("Processing Cross");
-                pm.SetLimit(x.Count);
-                int limit = x.Count;
-                //limit = 8;
-                stopwatch.Start();
-                for (int i = 0; i < limit; i++)
-                {
-                    x.Draw(i);
-                    x.Place(i);
-                    pm.MeterProgress();
-                }
+            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+            Stopwatch stopwatch = new Stopwatch();
+            Cross x = new Cross(s);
+            ProgressMeter pm = new ProgressMeter();
+            pm.Start("Processing Cross");
+            pm.SetLimit(x.Count);
+            int limit = x.Count;
+            //limit = 8;
+            stopwatch.Start();
+            for (int i = 0; i < limit; i++)
+            {
+                x.Draw(i);
+                x.Place(i);
+                pm.MeterProgress();
+            }
 
-                if (x.crossError.Split(',').Length != 0)
-                {
-                    ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
-        $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
-                }
-                else
-                {
-                    ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
-                }
+            if (x.crossError.Split(',').Length != 0)
+            {
+                ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
+    $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+            }
+            else
+            {
+                ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
+            }
 
-                Application.SetSystemVariable("XCLIPFRAME", 0);
-                Application.SetSystemVariable("PDMODE", 3);
-                pm.Stop();
-                stopwatch.Stop();
-                pm.Dispose();
-            
+            Application.SetSystemVariable("XCLIPFRAME", 0);
+            Application.SetSystemVariable("PDMODE", 3);
+            pm.Stop();
+            stopwatch.Stop();
+            pm.Dispose();
+
         }
 
         [CommandMethod("SelectObjectsByCrossingWindow")]
