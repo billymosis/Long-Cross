@@ -20,7 +20,7 @@ public class Data
     public double ElvAsDasar { get; set; }
     public double DistAsDasar { get; set; }
     public string NamaPatok { get; set; }
-    // Koordinat
+    // Koordinat Patok
     public double KX { get; set; }
     public double KY { get; set; }
     public double KZ { get; set; }

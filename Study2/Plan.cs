@@ -9,8 +9,10 @@ using static Utilities;
 public class Plan
 {
     private readonly Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-    private readonly int tempX;
     private readonly List<Data> DataCollection;
+
+
+
     public int Count => DataCollection.Count;
     public Plan(string Path)
     {
@@ -24,6 +26,9 @@ public class Plan
         Data Patok = DataCollection[CrossNumber];
         Data PatokNext = CrossNumber + 1 == Count ? Patok : DataCollection[CrossNumber + 1];
         Data PatokBefore = CrossNumber == 0 ? Patok : DataCollection[CrossNumber - 1];
+
+        bool isOnRight = Patok.Intersect.X > 0 ? true : false;
+
 
         List<double> Elev = Patok.Elevation.ConvertAll(x => double.Parse(x));
         List<double> Dist = Patok.Distance.ConvertAll(x => double.Parse(x));
@@ -42,33 +47,71 @@ public class Plan
 
         double AngleNext = (Math.Atan(ReciprocalNext));
         double AngleBefore = double.IsNaN(Math.Atan(ReciprocalBefore)) ? AngleNext : Math.Atan(ReciprocalBefore);
-        double Angle = (Math.Abs(AngleNext) + Math.Abs(AngleBefore)) / 2;
-        //if ((AngleNext > 0 && AngleBefore > 0) || (AngleNext < 0 && AngleBefore < 0))
-        //{
 
-        //}
-        //else
+        double Angle = (AngleNext + AngleBefore) / 2;
+
+        //if (SlopeBefore > 0 && SlopeNext < 0)
         //{
-        //    Angle = (AngleBefore);
+        //    Angle = Angle + (3 * Math.PI / 2); // 270 degree
         //}
+
+        //if (SlopeBefore < 0 && SlopeNext < 0)
+        //{
+        //    Angle = Angle + (1 * Math.PI); // 180 degree
+        //}
+
+
+        string SQuadrant = string.Concat(BothQuadrant(PointBefore, Point, PointNext));
+
+        switch (SQuadrant)
+        {
+            case ("12"):
+                Angle = Angle + (3 * Math.PI / 2); // 270 degree
+                break;
+            case ("21"):
+                Angle = Angle + (1 * Math.PI / 2); // 90 degree
+                break;
+            case ("31"):
+                Angle = Angle + (1 * Math.PI); // 180 degree
+                break;
+            case ("34"):
+                Angle = Angle + (1 * Math.PI / 2); // 90 degree
+                break;
+            case ("42"):
+                Angle = Angle + (1 * Math.PI); // 180 degree
+                break;
+            case ("43"):
+                Angle = Angle + (3 * Math.PI / 2); // 270 degree
+                break;
+        }
+
 
 
 
         ed.WriteMessage(Patok.NamaPatok + " : " + " Angle " + CR2D(AngleBefore).ToString() + " " + CR2D(AngleNext).ToString() + " " + CR2D(Angle).ToString() + "\n");
+        ed.WriteMessage(Patok.NamaPatok + " : " + " Slope " +SlopeBefore.ToString() + " " + SlopeNext.ToString() + "\n");
+        ed.WriteMessage(Patok.NamaPatok + " : " + " Quadrant " + SQuadrant + "\n");
         using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
         {
             using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
             {
                 using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
                 {
-                    using (Line L = new Line())
-                    {
-                        L.StartPoint = Point;
-                        L.EndPoint = PointNext;
+                    //using (Line L = new Line())
+                    //{
+                    //    L.StartPoint = Point;
+                    //    L.EndPoint = PointNext;
 
-                        btr.AppendEntity(L);
-                        tr.AddNewlyCreatedDBObject(L, true);
+                    //    btr.AppendEntity(L);
+                    //}
+
+                    using (Polyline3d PL = new Polyline3d())
+                    {
+                        PL.PolyType = Poly3dType.SimplePoly;
+                        var Vertex = new PolylineVertex3d();
+                        PL.AppendVertex(Vertex);
                     }
+
 
                     using (DBText tx = new DBText())
                     {
@@ -79,8 +122,8 @@ public class Plan
 
                     using (Line L = new Line())
                     {
-                        L.StartPoint = PolarPoints(Point, Angle, 5);
-                        L.EndPoint = PolarPoints(Point, Angle, -5);
+                        L.StartPoint = PolarPoints(Point, Angle,Patok.MaxDist);
+                        L.EndPoint = PolarPoints(Point, Angle, Patok.MinDist);
                         L.ColorIndex = 1;
                         btr.AppendEntity(L);
                         tr.AddNewlyCreatedDBObject(L, true);
@@ -115,5 +158,35 @@ public class Plan
     {
         return Y - (Reciprocal * X);
     }
+
+    private int GetQuadrant (Point3d first, Point3d second)
+    {
+        int Quadrant = 0;
+        if (second.X > first.X && second.Y > first.Y)
+        {
+            Quadrant = 1;
+        }
+        else if (second.X < first.X && second.Y > first.Y)
+        {
+            Quadrant = 2;
+        }
+        else if (second.X < first.X && second.Y < first.Y)
+        {
+            Quadrant = 3;
+        }
+        else if (second.X > first.X && second.Y < first.Y)
+        {
+            Quadrant = 4;
+        }
+
+        return Quadrant;
+    }
+
+    private int[] BothQuadrant (Point3d Before, Point3d Now, Point3d Next)
+    {
+        int[] array = new int[]{ GetQuadrant(Before, Now), GetQuadrant(Next, Now) };
+        return array;
+    }
+
 }
 

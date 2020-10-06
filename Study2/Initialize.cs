@@ -17,8 +17,8 @@ namespace PLC
             ImportBlock();
             LoadLinetype();
         }
-        [CommandMethod("ae")]
-        public static void ae()
+        [CommandMethod("AE")]
+        public static void AE()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -63,10 +63,10 @@ namespace PLC
         {
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
-            string s = @"E:/AutoCAD Project/Study2/Study2/data/MK.csv";
+            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
             Plan x = new Plan(s);
-            int limit = 50;
-            for (int i = 0; i < limit; i++)
+            int limit = x.Count;
+            for (int i = 480; i < 500; i++)
             {
                 x.Draw(i);
             }
