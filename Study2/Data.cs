@@ -1,25 +1,44 @@
-﻿using Microsoft.VisualBasic.FileIO;
+﻿using Autodesk.AutoCAD.Geometry;
+using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
+using static Utilities;
 
 public class Data
 {
     public List<string> Elevation { get; set; }
     public List<string> Distance { get; set; }
     public List<string> Description { get; set; }
+
+    public bool PunyaPatok { get; set; }
+    public Point3d MidPoint { get; set; }
+    public Point2d Intersect { get; set; }
+
     public double TanggulKiri { get; set; }
     public double TanggulKanan { get; set; }
-    public double Dasar { get; set; }
+    public double DasarKiri { get; set; }
+    public double DasarKanan { get; set; }
+
+    public int TanggulKiriIndex { get; set; }
+    public int TanggulKananIndex { get; set; }
+    public int DasarKiriIndex { get; set; }
+    public int DasarKananIndex { get; set; }
+
     public double ElvAsDasar { get; set; }
-    public double ElvMax { get; set; }
     public double DistAsDasar { get; set; }
     public string NamaPatok { get; set; }
+    // Koordinat Patok
     public double KX { get; set; }
     public double KY { get; set; }
     public double KZ { get; set; }
+
+
     public double Datum { get; set; }
-    public double BoundLeft { get; set; }
-    public double BoundRight { get; set; }
+    public double MaxDist { get; set; }
+    public double MinDist { get; set; }
+    public double TotalLength { get; set; }
+    public double MaxElv { get; set; }
+    public double MinElv { get; set; }
     public string Bangunan { get; set; }
     public string TipeBangunan { get; set; }
     private List<Data> DataCollection = new List<Data>();
@@ -96,23 +115,78 @@ public class Data
                     if (item.TanggulKiri == 0)
                     {
                         item.TanggulKiri = double.Parse(item.Elevation[i]);
+                        item.TanggulKiriIndex = i;
                     }
                     else
                     {
                         item.TanggulKanan = double.Parse(item.Elevation[i]);
+                        item.TanggulKananIndex = i;
                     }
                 }
+
                 //Dasar = Elevasi terendah
-                if (double.Parse(item.Elevation[i]) < item.Dasar || item.Dasar == 0)
+                if (double.Parse(item.Elevation[i]) < item.MinElv || item.MinElv == 0)
                 {
-                    item.Dasar = double.Parse(item.Elevation[i]);
-                    item.Datum = Math.Round(item.Dasar) - 2;
+                    item.MinElv = double.Parse(item.Elevation[i]);
+                    item.Datum = Math.Round(item.MinElv) - 2;
                 }
 
-                //ElvMax = ElevasiMax
-                if (double.Parse(item.Elevation[i]) > item.ElvMax || item.Dasar == 0)
+                //MaxElv
+                if (double.Parse(item.Elevation[i]) > item.MaxElv || item.MaxElv == 0)
                 {
-                    item.ElvMax = double.Parse(item.Elevation[i]);
+                    item.MaxElv = double.Parse(item.Elevation[i]);
+                }
+
+                //MaxDist
+                if (double.Parse(item.Distance[i]) > item.MaxDist || item.MaxDist == 0)
+                {
+                    item.MaxDist = double.Parse(item.Distance[i]);
+                }
+
+                //MinDist
+                if (double.Parse(item.Distance[i]) < item.MinDist || item.MinDist == 0)
+                {
+                    item.MinDist = double.Parse(item.Distance[i]);
+                }
+
+                item.TotalLength = Math.Abs(item.MaxDist - item.MinDist);
+
+
+                //Mid Point
+                if (item.Description.FindIndex(s => s.Contains("D")) != -1)
+                {
+                    item.PunyaPatok = true;
+                    int ds = item.Description.FindIndex(s => s.Contains("D"));
+                    int de = item.Description.FindIndex(ds + 1, s => s.Contains("D"));
+
+
+                    Point3d StartPoint = new Point3d(double.Parse(item.Distance[ds]), double.Parse(item.Elevation[ds]), 0);
+                    Point3d EndPoint = new Point3d(double.Parse(item.Distance[de]), double.Parse(item.Elevation[de]), 0);
+
+                    item.DasarKiri = StartPoint.Y;
+                    item.DasarKanan = EndPoint.Y;
+                    item.DasarKiriIndex = ds;
+                    item.DasarKananIndex = de;
+
+                    Vector3d v = StartPoint.GetVectorTo(EndPoint);
+                    item.MidPoint = new Point3d(double.Parse(item.Distance[ds]), double.Parse(item.Elevation[ds]), 0) + v * 0.5;
+                    if (ds - de == -1)
+                    {
+                        item.Intersect = FindIntersection2d(item.MidPoint, new Point3d(item.MidPoint.X, item.MinElv, 0), StartPoint, EndPoint);
+                    }
+                    else
+                    {
+                        int qq = item.Distance.ConvertAll(k => double.Parse(k)).FindIndex(l => l >= item.MidPoint.X);
+                        int qw = item.Distance.ConvertAll(k => double.Parse(k)).FindLastIndex(l => l <= item.MidPoint.X);
+                        Point3d q = new Point3d(double.Parse(item.Distance[qw]), double.Parse(item.Elevation[qw]), 0);
+                        Point3d w = new Point3d(double.Parse(item.Distance[qq]), double.Parse(item.Elevation[qq]), 0);
+                        item.Intersect = FindIntersection2d(item.MidPoint, new Point3d(item.MidPoint.X, item.MinElv, 0), q, w);
+                    }
+
+                }
+                else
+                {
+                    item.PunyaPatok = false;
                 }
             }
         }
