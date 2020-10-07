@@ -64,9 +64,13 @@ namespace PLC
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
             string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+#pragma warning disable IDE0017 // Simplify object initialization
             Plan x = new Plan(s);
-            int limit = x.Count;
-            for (int i = 480; i < 500; i++)
+#pragma warning restore IDE0017 // Simplify object initialization
+            x.Start = 0;
+            x.End = x.Count;
+            
+            for (int i = x.Start; i < x.End; i++)
             {
                 x.Draw(i);
             }

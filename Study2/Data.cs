@@ -16,6 +16,13 @@ public class Data
 
     public double TanggulKiri { get; set; }
     public double TanggulKanan { get; set; }
+    public double DasarKiri { get; set; }
+    public double DasarKanan { get; set; }
+
+    public int TanggulKiriIndex { get; set; }
+    public int TanggulKananIndex { get; set; }
+    public int DasarKiriIndex { get; set; }
+    public int DasarKananIndex { get; set; }
 
     public double ElvAsDasar { get; set; }
     public double DistAsDasar { get; set; }
@@ -108,10 +115,12 @@ public class Data
                     if (item.TanggulKiri == 0)
                     {
                         item.TanggulKiri = double.Parse(item.Elevation[i]);
+                        item.TanggulKiriIndex = i;
                     }
                     else
                     {
                         item.TanggulKanan = double.Parse(item.Elevation[i]);
+                        item.TanggulKananIndex = i;
                     }
                 }
 
@@ -150,8 +159,15 @@ public class Data
                     int ds = item.Description.FindIndex(s => s.Contains("D"));
                     int de = item.Description.FindIndex(ds + 1, s => s.Contains("D"));
 
+
                     Point3d StartPoint = new Point3d(double.Parse(item.Distance[ds]), double.Parse(item.Elevation[ds]), 0);
                     Point3d EndPoint = new Point3d(double.Parse(item.Distance[de]), double.Parse(item.Elevation[de]), 0);
+
+                    item.DasarKiri = StartPoint.Y;
+                    item.DasarKanan = EndPoint.Y;
+                    item.DasarKiriIndex = ds;
+                    item.DasarKananIndex = de;
+
                     Vector3d v = StartPoint.GetVectorTo(EndPoint);
                     item.MidPoint = new Point3d(double.Parse(item.Distance[ds]), double.Parse(item.Elevation[ds]), 0) + v * 0.5;
                     if (ds - de == -1)
