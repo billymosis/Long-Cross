@@ -13,11 +13,15 @@ public class Plan
     public int Start { get; set; }
     public int End { get; set; }
 
-    private Point3dCollection p3dc;
-    private Point3dCollection TanggulKiri;
-    private Point3dCollection TanggulKanan;
-    private Point3dCollection DasarKiri;
-    private Point3dCollection DasarKanan;
+    private Point3dCollection p3dc = new Point3dCollection();
+    public Point3dCollection TanggulKiri = new Point3dCollection();
+    public Point3dCollection TanggulKanan = new Point3dCollection();
+    public Point3dCollection DasarKiri = new Point3dCollection();
+    public Point3dCollection DasarKanan = new Point3dCollection();
+    public Point3dCollection Alignment = new Point3dCollection();
+    public List<Point2dCollection> CutLineData = new List<Point2dCollection>();
+    public List<Point3dCollection> SurfaceData = new List<Point3dCollection>();
+
 
     public int Count => DataCollection.Count;
     public Plan(string Path)
@@ -35,6 +39,9 @@ public class Plan
 
         bool isOnRight = Patok.Intersect.X > 0 ? true : false;
 
+        double AngleNext = 0;
+        double AngleBefore = 0;
+
 
         List<double> Elev = Patok.Elevation.ConvertAll(x => double.Parse(x));
         List<double> Dist = Patok.Distance.ConvertAll(x => double.Parse(x));
@@ -43,6 +50,8 @@ public class Plan
         Point3d Point = new Point3d(Patok.KX, Patok.KY, Patok.KZ);
         Point3d PointNext = new Point3d(PatokNext.KX, PatokNext.KY, PatokNext.KZ);
         Point3d PointBefore = new Point3d(PatokBefore.KX, PatokBefore.KY, PatokBefore.KZ);
+
+
 
         Point3dCollection Cross = new Point3dCollection();
 
@@ -54,8 +63,17 @@ public class Plan
         double ReciprocalBefore = GetReciprocal(SlopeBefore);
         double Reciprocal = (ReciprocalNext + ReciprocalBefore);
 
-        double AngleNext = (Math.Atan(ReciprocalNext));
-        double AngleBefore = double.IsNaN(Math.Atan(ReciprocalBefore)) ? AngleNext : Math.Atan(ReciprocalBefore);
+        AngleNext = Math.Atan(ReciprocalNext);
+        AngleBefore = Math.Atan(ReciprocalBefore);
+
+        if (double.IsNaN(AngleNext))
+        {
+            AngleNext = AngleBefore;
+        }
+        if (double.IsNaN(AngleBefore))
+        {
+            AngleBefore = AngleNext;
+        }
 
         double Angle = (AngleNext + AngleBefore) / 2;
 
@@ -83,12 +101,34 @@ public class Plan
                 break;
         }
 
+        Point3d AlignmentPoint = PolarPoints(Point, Angle, Patok.Intersect.X);
+        AlignmentPoint = new Point3d(AlignmentPoint.X, AlignmentPoint.Y, Patok.Intersect.Y);
+
+        p3dc.Add(Point);
+
+
+        if (Patok.PatokSaja)
+        {
+            if (CrossNumber == 0)
+            {
+                Alignment.Add(AlignmentPoint);
+            }
+            else { Alignment.Add(Alignment[CrossNumber - 1]); }
+        }
+        else
+        {
+            Alignment.Add(AlignmentPoint);
+        }
 
 
 
-        //ed.WriteMessage(Patok.NamaPatok + " : " + " Angle " + CR2D(AngleBefore).ToString() + " " + CR2D(AngleNext).ToString() + " " + CR2D(Angle).ToString() + "\n");
-        //ed.WriteMessage(Patok.NamaPatok + " : " + " Slope " +SlopeBefore.ToString() + " " + SlopeNext.ToString() + "\n");
-        //ed.WriteMessage(Patok.NamaPatok + " : " + " Quadrant " + SQuadrant + "\n");
+        //if (CrossNumber > 620)
+        //{
+        //    ed.WriteMessage(Patok.NamaPatok + " : " + " Angle " + CR2D(AngleBefore).ToString() + " " + CR2D(AngleNext).ToString() + " " + CR2D(Angle).ToString() + "\n");
+        //    ed.WriteMessage(Patok.NamaPatok + " : " + " Slope " + SlopeBefore.ToString() + " " + SlopeNext.ToString() + "\n");
+        //    ed.WriteMessage(Patok.NamaPatok + " : " + " Quadrant " + SQuadrant + "\n");
+        //}
+
         using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
         {
             using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
@@ -103,19 +143,16 @@ public class Plan
                     //    btr.AppendEntity(L);
                     //    tr.AddNewlyCreatedDBObject(L, true);
                     //}
-                    if (p3dc == null)
-                    {
-                        p3dc = new Point3dCollection
-                        {
-                            Point
-                        };
-                    }
-                    if (CrossNumber != Start && CrossNumber != End)
-                    {
-                        p3dc.Add(Point);
-                    }
+
+
+                    //MID ALIGNMENT
+
                     if (CrossNumber == End - 1)
                     {
+                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, Alignment, false))
+                        {
+                            btr.AppendEntity(PL);
+                        };
                         using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, p3dc, false))
                         {
                             btr.AppendEntity(PL);
@@ -138,167 +175,120 @@ public class Plan
                             Cross.Add(tx.Position);
                             tx.TextString = Desc[i];
                             btr.AppendEntity(tx);
-                            if (i == Patok.TanggulKiriIndex)
+                            if (Patok.PatokSaja)
                             {
-                                if (TanggulKiri == null)
+                                if (CrossNumber == 0)
                                 {
-                                    TanggulKiri = new Point3dCollection
+                                    if (i == Patok.TanggulKiriIndex)
                                     {
-                                        tx.Position
-                                    };
-                                }
-                                if (CrossNumber != Start && CrossNumber != End)
-                                {
-
-                                    TanggulKiri.Add(tx.Position);
-
-                                }
-                                if (CrossNumber == End - 1)
-                                {
-                                    using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, TanggulKiri, false))
-                                    {
-                                        btr.AppendEntity(PL);
-                                    };
-                                }
-                            }
-                            if (i == Patok.TanggulKananIndex)
-                            {
-                                if (TanggulKanan == null)
-                                {
-                                    TanggulKanan = new Point3dCollection
-                                    {
-                                        tx.Position
-                                    };
-                                }
-                                if (CrossNumber != Start && CrossNumber != End)
-                                {
-                                    if (Elev[i] == Patok.TanggulKanan)
+                                        TanggulKiri.Add(tx.Position);
+                                    }
+                                    if (i == Patok.TanggulKananIndex)
                                     {
                                         TanggulKanan.Add(tx.Position);
                                     }
-                                }
-                                if (CrossNumber == End - 1)
-                                {
-                                    using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, TanggulKanan, false))
-                                    {
-                                        btr.AppendEntity(PL);
-                                    };
-                                }
-                            }
-                            if (i == Patok.DasarKiriIndex)
-                            {
-                                if (DasarKiri == null)
-                                {
-                                    DasarKiri = new Point3dCollection
-                                    {
-                                        tx.Position
-                                    };
-                                }
-                                if (CrossNumber != Start && CrossNumber != End)
-                                {
-                                    if (Elev[i] == Patok.DasarKiri)
+                                    if (i == Patok.DasarKiriIndex)
                                     {
                                         DasarKiri.Add(tx.Position);
                                     }
-                                }
-                                if (CrossNumber == End - 1)
-                                {
-                                    using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DasarKiri, false))
-                                    {
-                                        btr.AppendEntity(PL);
-                                    };
-                                }
-                            }
-                            if (i == Patok.DasarKananIndex)
-                            {
-                                if (DasarKanan == null)
-                                {
-                                    DasarKanan = new Point3dCollection
-                                    {
-                                        tx.Position
-                                    };
-                                }
-                                if (CrossNumber != Start && CrossNumber != End)
-                                {
-                                    if (Elev[i] == Patok.DasarKanan)
+                                    if (i == Patok.DasarKananIndex)
                                     {
                                         DasarKanan.Add(tx.Position);
                                     }
                                 }
-                                if (CrossNumber == End - 1)
+                                else
                                 {
-                                    using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DasarKanan, false))
-                                    {
-                                        btr.AppendEntity(PL);
-                                    };
+                                    TanggulKiri.Add(TanggulKiri[CrossNumber - 1]);
+                                    TanggulKanan.Add(TanggulKanan[CrossNumber - 1]);
+                                    DasarKiri.Add(DasarKiri[CrossNumber - 1]);
+                                    DasarKanan.Add(DasarKanan[CrossNumber - 1]);
+                                }
+
+                            }
+                            else
+                            {
+                                if (i == Patok.TanggulKiriIndex)
+                                {
+                                    TanggulKiri.Add(tx.Position);
+                                }
+                                if (i == Patok.TanggulKananIndex)
+                                {
+                                    TanggulKanan.Add(tx.Position);
+                                }
+                                if (i == Patok.DasarKiriIndex)
+                                {
+                                    DasarKiri.Add(tx.Position);
+                                }
+                                if (i == Patok.DasarKananIndex)
+                                {
+                                    DasarKanan.Add(tx.Position);
                                 }
                             }
+
                         }
                     }
 
+                    if (CrossNumber == End - 1)
+                    {
+                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, TanggulKiri, false))
+                        {
+                            btr.AppendEntity(PL);
+                        };
+                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, TanggulKanan, false))
+                        {
+                            btr.AppendEntity(PL);
+                        };
+                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DasarKiri, false))
+                        {
+                            btr.AppendEntity(PL);
+                        };
+                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DasarKanan, false))
+                        {
+                            btr.AppendEntity(PL);
+                        };
+                    }
+
+                    //HEC-RAS 2d PolyLine
                     using (Polyline PL = new Polyline())
                     {
-
-
-                        PL.AddVertexAt(0, ConvertPoint2d(Cross[Patok.TanggulKiriIndex]), 0, 0, 0);
-                        PL.AddVertexAt(1, ConvertPoint2d(Cross[Patok.TanggulKananIndex]), 0, 0, 0);
-
-
+                        Point2d first = ConvertPoint2d(Cross[Patok.TanggulKiriIndex]);
+                        Point2d second = ConvertPoint2d(Cross[Patok.TanggulKananIndex]);
+                        PL.AddVertexAt(0, first, 0, 0, 0);
+                        PL.AddVertexAt(1, second, 0, 0, 0);
                         btr.AppendEntity(PL);
+                        Point2dCollection PointCut = new Point2dCollection
+                        {
+                            first,
+                            GetMidPoint(first, second),
+                            second
+                        };
+                        CutLineData.Add(PointCut);
                     };
 
+                    //CROSS SECTION
                     using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, Cross, false))
                     {
                         btr.AppendEntity(PL);
+                        List<Point3d> Mantab = new List<Point3d>();
+                        foreach (Point3d item in Cross)
+                        {
+                            Mantab.Add(item);
+                        }
+                        Mantab.RemoveRange(0, Patok.TanggulKiriIndex);
+                        int UpdatePatokKanan = Patok.TanggulKananIndex - Patok.TanggulKiriIndex + 1;
+                        Mantab.RemoveRange(UpdatePatokKanan, Mantab.Count - UpdatePatokKanan);
+
+                        Cross.Clear();
+                        foreach (Point3d item in Mantab)
+                        {
+                            Cross.Add(item);
+                        }
+                        SurfaceData.Add(Cross);
                     };
                 }
             }
             tr.Commit();
         }
-    }
-
-    private double GetSlope(Point2d first, Point2d second)
-    {
-        return (second.Y - first.Y) / (second.X - first.X);
-    }
-
-    private double GetReciprocal(double value)
-    {
-        return (1 / value) * -1;
-    }
-
-    private double GetConstant(double X, double Y, double Reciprocal)
-    {
-        return Y - (Reciprocal * X);
-    }
-
-    private int GetQuadrant(Point3d first, Point3d second)
-    {
-        int Quadrant = 0;
-        if (second.X > first.X && second.Y > first.Y)
-        {
-            Quadrant = 1;
-        }
-        else if (second.X < first.X && second.Y > first.Y)
-        {
-            Quadrant = 2;
-        }
-        else if (second.X < first.X && second.Y < first.Y)
-        {
-            Quadrant = 3;
-        }
-        else if (second.X > first.X && second.Y < first.Y)
-        {
-            Quadrant = 4;
-        }
-
-        return Quadrant;
-    }
-
-    private int[] BothQuadrant(Point3d Before, Point3d Now, Point3d Next)
-    {
-        int[] array = new int[] { GetQuadrant(Before, Now), GetQuadrant(Next, Now) };
-        return array;
     }
 
 }

@@ -10,7 +10,11 @@ public class Data
     public List<string> Distance { get; set; }
     public List<string> Description { get; set; }
 
-    public bool PunyaPatok { get; set; }
+    public bool PunyaBoundaryDasar { get; set; }
+    public bool PatokSaja { get; set; }
+
+
+
     public Point3d MidPoint { get; set; }
     public Point2d Intersect { get; set; }
 
@@ -155,7 +159,7 @@ public class Data
                 //Mid Point
                 if (item.Description.FindIndex(s => s.Contains("D")) != -1)
                 {
-                    item.PunyaPatok = true;
+                    item.PunyaBoundaryDasar = true;
                     int ds = item.Description.FindIndex(s => s.Contains("D"));
                     int de = item.Description.FindIndex(ds + 1, s => s.Contains("D"));
 
@@ -186,7 +190,8 @@ public class Data
                 }
                 else
                 {
-                    item.PunyaPatok = false;
+                    item.PunyaBoundaryDasar = false;
+                    item.PatokSaja = true;
                 }
             }
         }

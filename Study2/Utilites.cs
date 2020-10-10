@@ -1,14 +1,10 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Runtime;
+﻿using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using AcRx = Autodesk.AutoCAD.Runtime;
-using TransactionManager = Autodesk.AutoCAD.DatabaseServices.TransactionManager;
-
+using System.Globalization;
+using System.IO;
+using System.Net;
+using System.Reflection;
 
 public static class Utilities
 {
@@ -40,6 +36,11 @@ public static class Utilities
     public static bool IsRight(Point2d p1, Point2d p2)
     {
         return p1.X > p2.X;
+    }
+
+    public static Point2d GetMidPoint(Point2d first, Point2d second)
+    {
+        return new Point2d(Math.Abs(first.X + second.X) / 2, Math.Abs(first.Y + second.Y) / 2); 
     }
 
     public static Point2d FindIntersection2d(Point3d s1, Point3d e1, Point3d s2, Point3d e2)
@@ -78,11 +79,11 @@ public static class Utilities
     {
         // NB Method will return int.MaxValue for a sequence containing no elements.
         // Apply any defensive coding here as necessary.
-        var closest = int.MaxValue;
-        var minDifference = int.MaxValue;
-        foreach (var element in collection)
+        int closest = int.MaxValue;
+        int minDifference = int.MaxValue;
+        foreach (int element in collection)
         {
-            var difference = Math.Abs((long)element - target);
+            long difference = Math.Abs((long)element - target);
             if (minDifference > difference)
             {
                 minDifference = (int)difference;
@@ -110,6 +111,101 @@ public static class Utilities
                              pPt.Z);
     }
 
+    public static double GetSlope(Point2d first, Point2d second)
+    {
+        return (second.Y - first.Y) / (second.X - first.X);
+    }
+
+    public static double GetReciprocal(double value)
+    {
+        return (1 / value) * -1;
+    }
+
+    public static double GetConstant(double X, double Y, double Reciprocal)
+    {
+        return Y - (Reciprocal * X);
+    }
+
+    public static int GetQuadrant(Point3d first, Point3d second)
+    {
+        int Quadrant = 0;
+        if (second.X > first.X && second.Y > first.Y)
+        {
+            Quadrant = 1;
+        }
+        else if (second.X < first.X && second.Y > first.Y)
+        {
+            Quadrant = 2;
+        }
+        else if (second.X < first.X && second.Y < first.Y)
+        {
+            Quadrant = 3;
+        }
+        else if (second.X > first.X && second.Y < first.Y)
+        {
+            Quadrant = 4;
+        }
+
+        return Quadrant;
+    }
+
+    public static int[] BothQuadrant(Point3d Before, Point3d Now, Point3d Next)
+    {
+        int[] array = new int[] { GetQuadrant(Before, Now), GetQuadrant(Next, Now) };
+        return array;
+    }
+
+    public static DateTime GetNistTime()
+    {
+        DateTime result = DateTime.Now;
+        try
+        {
+            using (WebResponse response = WebRequest.Create("http://www.microsoft.com").GetResponse())
+            {
+                return result = DateTime.ParseExact(response.Headers["date"], "ddd, dd MMM yyyy HH:mm:ss 'GMT'", CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.AssumeUniversal);
+            }
+        }
+        catch (WebException wex)
+        {
+            if (wex.Response != null)
+            {
+                return result = DateTime.Now;
+            }
+        }
+        return result.AddYears(5);
+    }
+    public static string GetDllPath()
+    {
+        string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        string filename = Path.GetFullPath(Assembly.GetExecutingAssembly().Location);
+        string filePathRelativeToAssembly = Path.Combine(assemblyPath, @"..\SomeFolder\SomeRelativeFile.txt");
+        string normalizedPath = Path.GetFullPath(filePathRelativeToAssembly);
+
+        return assemblyPath;
+    }
+
+    public static void WriteFile(string[] content, string filename)
+    {
+        using (StreamWriter file = new StreamWriter(GetDllPath() + @"\" + filename, false))
+        {
+            foreach (string item in content)
+            {
+                file.WriteLine(item);
+            }
+
+        }
+    }
+
+    public static void WriteFile(string content, string filename)
+    {
+        using (StreamWriter file = new StreamWriter(GetDllPath() + @"\" + filename, false))
+        {
+
+            file.WriteLine(content);
+
+
+        }
+    }
 }
 
 

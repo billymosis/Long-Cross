@@ -6,6 +6,8 @@ using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using static Utilities;
+
 
 namespace PLC
 {
@@ -13,10 +15,44 @@ namespace PLC
     {
         public void Initialize()
         {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
             ImportBlock();
             LoadLinetype();
         }
+
+        [CommandMethod("GETTIME")]
+        public static void GETTIME()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            DateTime result = GetNistTime();
+            ed.WriteMessage(result.ToString());
+        }
+
+        [CommandMethod("GETPATH")]
+        public static void GETPATH()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            string s = GetDllPath();
+            ed.WriteMessage(s);
+        }
+
+        [CommandMethod("WRITETEXT")]
+        public static void WRITETEXT()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+
+        }
+
+
         [CommandMethod("AE")]
         public static void AE()
         {
@@ -38,7 +74,7 @@ namespace PLC
                     double gap = length / 15.0;
                     double dis = gap;
                     //int run = ((int)gap); <- this is wrong and unusefull
-                    var curSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+                    BlockTableRecord curSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
                     for (int i = 0; i < 14; i++)
                     {
                         Point3d p1 = ent.GetPointAtDist(dis);
@@ -67,13 +103,17 @@ namespace PLC
 #pragma warning disable IDE0017 // Simplify object initialization
             Plan x = new Plan(s);
 #pragma warning restore IDE0017 // Simplify object initialization
-            x.Start = 0;
-            x.End = x.Count;
-            
+            x.Start = 17;
+            x.End = 30;
+
             for (int i = x.Start; i < x.End; i++)
             {
                 x.Draw(i);
             }
+            HecRAS hec = new HecRAS(x);
+
+            WriteFile(hec.GEORAS, "oke.geo");
+
 
         }
 
@@ -136,7 +176,7 @@ namespace PLC
             Cross x = new Cross(s);
             ProgressMeter pm = new ProgressMeter();
             pm.Start("Processing Cross");
-            List<int> numbers = new List<int>() { 52,53,54,55 };
+            List<int> numbers = new List<int>() { 52, 53, 54, 55 };
             int limit = numbers.Count;
             pm.SetLimit(limit);
             stopwatch.Start();
@@ -147,7 +187,7 @@ namespace PLC
                 pm.MeterProgress();
             }
 
-            if (x.crossError != null && x.crossError.Split(',').Length != 0 )
+            if (x.crossError != null && x.crossError.Split(',').Length != 0)
             {
                 ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
     $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");

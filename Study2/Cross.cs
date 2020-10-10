@@ -183,7 +183,7 @@ public class Cross
                         }
 
                         //MID POINT
-                        if (DataCollection[CrossNumber].PunyaPatok == true)
+                        if (DataCollection[CrossNumber].PunyaBoundaryDasar == true)
                         {
                             using (DBPoint c = new DBPoint())
                             {

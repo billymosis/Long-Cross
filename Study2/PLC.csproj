@@ -95,6 +95,7 @@
     <Compile Include="ChangeElevation.cs" />
     <Compile Include="Cross.cs" />
     <Compile Include="Data.cs" />
+    <Compile Include="HecRAS.cs" />
     <Compile Include="Initialize.cs" />
     <Compile Include="Plan.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
