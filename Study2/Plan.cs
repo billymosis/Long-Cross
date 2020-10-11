@@ -276,6 +276,10 @@ public class Plan
                         }
                         Mantab.RemoveRange(0, Patok.TanggulKiriIndex);
                         int UpdatePatokKanan = Patok.TanggulKananIndex - Patok.TanggulKiriIndex + 1;
+                        if (UpdatePatokKanan < 0)
+                        {
+                            UpdatePatokKanan = 0;
+                        }
                         Mantab.RemoveRange(UpdatePatokKanan, Mantab.Count - UpdatePatokKanan);
 
                         Cross.Clear();

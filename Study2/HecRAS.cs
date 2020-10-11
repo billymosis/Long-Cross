@@ -32,27 +32,27 @@ public class HecRAS
         string HEADER = Header(RiverName, NumberofReaches, NumberofXS, UNITS);
         string Network = StreamNetwork(RiverName, ReachID, Alignment);
         string s = string.Empty;
-        for (int i = 0; i < Alignment.Count; i++)
+        List<double> JarakLOB = new List<double>();
+        List<double> JarakChannel = new List<double>();
+        List<double> JarakROB = new List<double>();
+        for (int i = 0; i < Alignment.Count-1; i++)
         {
-            double JarakLOB;
-            double JarakChannel;
-            double JarakROB;
-            if (i == 0)
-            {
-                JarakLOB = 0;
-                JarakChannel = 0;
-                JarakROB = 0;
-                s += CrossSection(RiverName, ReachID, "0", JarakLOB, JarakChannel, JarakROB, x.CutLineData[i], x.SurfaceData[i]);
-            }
-            else
-            {
-                JarakLOB = x.TanggulKiri[i - 1].DistanceTo(x.TanggulKiri[i]);
-                JarakChannel = Alignment[i - 1].DistanceTo(Alignment[i]);
-                JarakROB = x.TanggulKanan[i - 1].DistanceTo(x.TanggulKanan[i]);
-                s += CrossSection(RiverName, ReachID, XSDistance[i-1], JarakLOB, JarakChannel, JarakROB, x.CutLineData[i], x.SurfaceData[i]);
-            }
+
+            JarakLOB.Add(x.TanggulKiri[i].DistanceTo(x.TanggulKiri[i + 1]));
+            JarakChannel.Add(Alignment[i].DistanceTo(Alignment[i + 1]));
+            JarakROB.Add(x.TanggulKanan[i].DistanceTo(x.TanggulKanan[i + 1]));
 
         }
+        XSDistance.Reverse();
+        JarakLOB.Add(0);
+        JarakChannel.Add(0);
+        JarakROB.Add(0);
+
+        for (int i = 0; i < Alignment.Count; i++)
+        {
+            s += CrossSection(RiverName, ReachID, XSDistance[i], JarakLOB[i], JarakChannel[i], JarakROB[i], x.CutLineData[i], x.SurfaceData[i]);
+        }
+
         GEORAS = HEADER + Network + s + "\rEND CROSS-SECTIONS:\r\r\r";
     }
 
@@ -115,8 +115,8 @@ public class HecRAS
         for (int i = 0; i < Alignment.Count; i++)
         {
             EndPoints.Add($"{Alignment[i].X.ToString("F")}, {Alignment[i].Y.ToString("F")}, {Alignment[i].Z.ToString("F")}, {Distance.ToString("F")}\r");
-            Distance += Alignment[i].DistanceTo(Alignment[i + 1]);
             XSDistance.Add(Distance.ToString("F"));
+            Distance += Alignment[i].DistanceTo(Alignment[i + 1]);
             s += EndPoints[i];
         }
         s += "END:\r";

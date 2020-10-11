@@ -103,8 +103,8 @@ namespace PLC
 #pragma warning disable IDE0017 // Simplify object initialization
             Plan x = new Plan(s);
 #pragma warning restore IDE0017 // Simplify object initialization
-            x.Start = 17;
-            x.End = 30;
+            x.Start = 0;
+            x.End = 200;
 
             for (int i = x.Start; i < x.End; i++)
             {
