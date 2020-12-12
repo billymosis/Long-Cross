@@ -1,4 +1,5 @@
-﻿using Autodesk.AutoCAD.Geometry;
+﻿using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -206,6 +207,18 @@ public static class Utilities
 
         }
     }
+
+    public static void DrawLine(Point3d Awal, Point3d Akhir, BlockTableRecord btr)
+    {
+        using (Line L = new Line())
+        {
+            L.StartPoint = Awal;
+            L.EndPoint = Akhir;
+            btr.AppendEntity(L);
+
+        }
+    }
+
 }
 
 
