@@ -4,15 +4,12 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using CsvHelper;
-using CsvHelper.Configuration.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using static Utilities;
-
-
+using static PLC.Utilities;
 
 namespace PLC
 {
@@ -28,75 +25,14 @@ namespace PLC
             LoadLinetype();
         }
 
-        [CommandMethod("GETTIME")]
-        public static void GETTIME()
+
+        [CommandMethod("DAA")]
+        public static void DAA()
         {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-            DateTime result = GetNistTime();
-            ed.WriteMessage(result.ToString());
-        }
-
-        [CommandMethod("GETPATH")]
-        public static void GETPATH()
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-            string s = GetDllPath();
-            ed.WriteMessage(s);
-        }
-
-        [CommandMethod("WRITETEXT")]
-        public static void WRITETEXT()
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-
-        }
-
-
-        [CommandMethod("AE")]
-        public static void AE()
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                PromptEntityOptions op = new PromptEntityOptions("\nSelect polyline :");
-                op.SetRejectMessage("Must be Polyline");
-                op.AddAllowedClass(typeof(Polyline), true);
-                op.AllowNone = false;
-                PromptEntityResult s = ed.GetEntity(op);
-                if (s.Status == PromptStatus.OK)
-                {
-                    Polyline ent = (Polyline)tr.GetObject(s.ObjectId, OpenMode.ForRead);
-                    Line drawLine = new Line();
-                    double length = ent.Length;
-                    double gap = length / 15.0;
-                    double dis = gap;
-                    //int run = ((int)gap); <- this is wrong and unusefull
-                    BlockTableRecord curSpace = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-                    for (int i = 0; i < 14; i++)
-                    {
-                        Point3d p1 = ent.GetPointAtDist(dis);
-                        Vector3d ang = ent.GetFirstDerivative(ent.GetParameterAtPoint(p1));
-                        // scale the vector by 5.0 (so that it's 5 units length)
-                        ang = ang.GetNormal() * 5.0;
-                        // rotate the vector
-                        ang = ang.TransformBy(Matrix3d.Rotation(Math.PI / 2.0, ent.Normal, Point3d.Origin));
-                        // create a line by substracting and adding the vector to the point (displacing the point)
-                        Line line = new Line(p1 - ang, p1 + ang);
-                        curSpace.AppendEntity(line);
-                        tr.AddNewlyCreatedDBObject(line, true);
-                        dis = dis + gap;
-                    }
-                }
-                tr.Commit();
-            }
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+            Data oye = new Data(s);
         }
 
         [CommandMethod("AW")]
@@ -105,21 +41,47 @@ namespace PLC
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
             string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
-#pragma warning disable IDE0017 // Simplify object initialization
-            Plan x = new Plan(s);
-#pragma warning restore IDE0017 // Simplify object initialization
-            x.Start = 0;
-            x.End = 200;
-
-            for (int i = x.Start; i < x.End; i++)
+            Data d = new Data(s);
+            Plan x = new Plan(d);
+            x.DrawPolygon();
+            for (int i = 0; i < 100; i++)
             {
-                x.Draw(i);
+                x.DrawPlanCross(i);
             }
-            HecRAS hec = new HecRAS(x);
 
-            WriteFile(hec.GEORAS, "oke.geo");
+            //HecRAS hec = new HecRAS(x);
 
+            //List<XYZ> records = new List<XYZ>();
+            //int k = 0;
+            //foreach (Point3dCollection items in x.RAWSurfaceData)
+            //{
+            //    int j = 0;
+            //    foreach (Point3d item in items)
+            //    {
+            //        if (k < x.namaPatok.Count)
+            //        {
+            //            records.Add(new XYZ { Id = j, Name = x.namaPatok[k], Description = x.descriptionList[j], X = item.X, Y = item.Y, Z = item.Z });
+            //            j++;
+            //        }
+            //    }
+            //    k++;
+            //}
+            //using (StreamWriter writer = new StreamWriter(GetDllPath() + @"\" + "XYZ.csv", false))
+            //using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            //{
+            //    csv.WriteRecords(records);
+            //}
+            //WriteFile(hec.GEORAS, "oke.geo");
+        }
 
+        public class XYZ
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public string Description { get; set; }
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Z { get; set; }
         }
 
         [CommandMethod("CrossDraw")]
@@ -133,17 +95,18 @@ namespace PLC
             {
                 string s = path;
                 Stopwatch stopwatch = new Stopwatch();
-                Cross x = new Cross(s);
+                Data d = new Data(s);
+                Cross x = new Cross(d);
                 ProgressMeter pm = new ProgressMeter();
                 pm.Start("Processing Cross");
                 pm.SetLimit(x.Count);
                 int limit = x.Count;
                 limit = 8;
                 stopwatch.Start();
-                for (int i = 0; i < limit; i++)
+                for (int i = 0; i < d.TotalCrossNumber; i++)
                 {
-                    x.Draw(i);
-                    x.Place(i);
+                    x.Draw(d.CrossDataCollection[i]);
+                    x.Place(d.CrossDataCollection[i],i);
                     pm.MeterProgress();
                 }
 
@@ -170,154 +133,6 @@ namespace PLC
             }
         }
 
-
-        public class Foo
-        {
-            [Index(0)]
-            public string Kolom0 { get; set; }
-
-            [Index(1)]
-            public string Kolom1 { get; set; }
-
-            [Index(2)]
-            public string Kolom2 { get; set; }
-
-            [Index(3)]
-            public string Kolom3 { get; set; }
-
-            [Index(4)]
-            public string Kolom4 { get; set; }
-
-            [Index(5)]
-            public string Kolom5 { get; set; }
-        }
-
-        
-
-        [CommandMethod("RT")]
-        public static void RT()
-        {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ");
-            string s = ed.GetFileNameForOpen(POFO).StringResult;
-            using (StreamReader reader = new StreamReader(s))
-            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
-            {
-                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
-                {
-                    using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
-                    {
-                        using (CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-                        {
-                            csv.Configuration.HasHeaderRecord = false;
-                            IEnumerable<Foo> records = csv.GetRecords<Foo>();
-                            double y = 0;
-                            double baris = -0.1;
-
-                            const double TEXT_HEIGHT = 0.35;
-                            const double ROW_HEIGHT = 0.7;
-                            const double ROW_INCREMENT = 40;
-                            double x0 = 0.5;
-                            double x1 = 1.75;
-                            double x2 = 15;
-                            double x3 = 18.25;
-                            double x4 = 21.5;
-                            double x5 = 27.15;
-
-                            int jumlahData = 0;
-                            int kolom = 0;
-                            foreach (Foo r in records)
-                            {
-                                jumlahData++;
-                                using (Line L = new Line())
-                                {
-                                    L.StartPoint = new Point3d(x0-0.5, baris, 0);
-                                    L.EndPoint = new Point3d(x0+29.5, baris, 0);
-                                    btr.AppendEntity(L);
-                                }
-
-                                using (DBText tx = new DBText())
-                                {
-                                    tx.Position = new Point3d(x0, y, 0);
-                                    tx.TextString = r.Kolom0;
-                                    tx.Height = TEXT_HEIGHT;
-                                    btr.AppendEntity(tx);
-                                }
-
-                                using (DBText tx = new DBText())
-                                {
-                                    tx.Position = new Point3d(x1, y, 0);
-                                    tx.TextString = r.Kolom1;
-                                    tx.Height = TEXT_HEIGHT;
-                                    btr.AppendEntity(tx);
-                                }
-
-                                using (DBText tx = new DBText())
-                                {
-                                    tx.Position = new Point3d(x2, y, 0);
-                                    tx.TextString = r.Kolom2;
-                                    tx.Height = TEXT_HEIGHT;
-                                    btr.AppendEntity(tx);
-                                }
-
-                                using (DBText tx = new DBText())
-                                {
-                                    tx.Position = new Point3d(x3, y, 0);
-                                    tx.TextString = r.Kolom3;
-                                    tx.Height = TEXT_HEIGHT;
-                                    btr.AppendEntity(tx);
-                                }
-
-                                using (DBText tx = new DBText())
-                                {
-                                    tx.Position = new Point3d(x4, y, 0);
-                                    tx.TextString = r.Kolom4;
-                                    tx.Height = TEXT_HEIGHT;
-                                    btr.AppendEntity(tx);
-                                }
-
-                                using (DBText tx = new DBText())
-                                {
-                                    tx.Position = new Point3d(x5, y, 0);
-                                    tx.TextString = r.Kolom5;
-                                    tx.Height = TEXT_HEIGHT;
-                                    btr.AppendEntity(tx);
-                                }
-
-                                baris = baris - ROW_HEIGHT;
-                                y = y - ROW_HEIGHT;
-                                if (jumlahData%50 == 0)
-                                {
-                                    x0 = x0 + ROW_INCREMENT;
-                                    x1 = x1 + ROW_INCREMENT;
-                                    x2 = x2 + ROW_INCREMENT;
-                                    x3 = x3 + ROW_INCREMENT;
-                                    x4 = x4 + ROW_INCREMENT;
-                                    x5 = x5 + ROW_INCREMENT;
-                                    y = 0;
-                                    baris = -0.1;
-
-                                    DrawLine(new Point3d(0 + ROW_INCREMENT * kolom, 0, 0), new Point3d(0 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    DrawLine(new Point3d(1.5 + ROW_INCREMENT * kolom, 0, 0), new Point3d(1.5 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    DrawLine(new Point3d(14 + ROW_INCREMENT * kolom, 0, 0), new Point3d(14 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    DrawLine(new Point3d(17.5 + ROW_INCREMENT * kolom, 0, 0), new Point3d(17.5 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    DrawLine(new Point3d(21 + ROW_INCREMENT * kolom, 0, 0), new Point3d(21 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    DrawLine(new Point3d(26.5 + ROW_INCREMENT * kolom, 0, 0), new Point3d(26.5 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    DrawLine(new Point3d(30 + ROW_INCREMENT * kolom, 0, 0), new Point3d(30 + ROW_INCREMENT * kolom, -jumlahData * ROW_HEIGHT, 0), btr);
-                                    kolom = kolom + 1;
-                                }
-                            }
-
-
-                        }
-                    }
-                }
-                tr.Commit();
-            }
-        }
-
-
         [CommandMethod("WR")]
         public static void WR()
         {
@@ -326,7 +141,8 @@ namespace PLC
 
             string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
             Stopwatch stopwatch = new Stopwatch();
-            Cross x = new Cross(s);
+            Data d = new Data(s);
+            Cross x = new Cross(d);
             ProgressMeter pm = new ProgressMeter();
             pm.Start("Processing Cross");
             List<int> numbers = new List<int>() { 52, 53, 54, 55 };
@@ -335,8 +151,8 @@ namespace PLC
             stopwatch.Start();
             for (int i = 0; i < limit; i++)
             {
-                x.Draw(numbers[i]);
-                x.Place(numbers[i]);
+                x.Draw(d.CrossDataCollection[i]);
+                x.Place(d.CrossDataCollection[i], i);
                 pm.MeterProgress();
             }
 
@@ -367,7 +183,8 @@ namespace PLC
 
             string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
             Stopwatch stopwatch = new Stopwatch();
-            Cross x = new Cross(s);
+            Data d = new Data(s);
+            Cross x = new Cross(d);
             ProgressMeter pm = new ProgressMeter();
             pm.Start("Processing Cross");
             pm.SetLimit(x.Count);
@@ -376,8 +193,8 @@ namespace PLC
             stopwatch.Start();
             for (int i = 0; i < limit; i++)
             {
-                x.Draw(i);
-                x.Place(i);
+                x.Draw(d.CrossDataCollection[i]);
+                x.Place(d.CrossDataCollection[i], i);
                 pm.MeterProgress();
             }
 
@@ -396,165 +213,6 @@ namespace PLC
             pm.Stop();
             stopwatch.Stop();
             pm.Dispose();
-
-        }
-
-        [CommandMethod("SelectObjectsByCrossingWindow")]
-        public static void SelectObjectsByCrossingWindow()
-        {
-            // Get the current document editor
-            Editor acDocEd = Application.DocumentManager.MdiActiveDocument.Editor;
-
-            // Create a crossing window from (2,2,0) to (10,8,0)
-            PromptSelectionResult acSSPrompt;
-            acSSPrompt = acDocEd.SelectCrossingWindow(new Point3d(2, 2, 0),
-                                                        new Point3d(10, 8, 0));
-
-            // If the prompt status is OK, objects were selected
-            if (acSSPrompt.Status == PromptStatus.OK)
-            {
-                SelectionSet acSSet = acSSPrompt.Value;
-
-                Application.ShowAlertDialog("Number of objects selected: " +
-                                            acSSet.Count.ToString());
-            }
-            else
-            {
-                Application.ShowAlertDialog("Number of objects selected: 0");
-            }
-        }
-
-        [CommandMethod("CheckObject")]
-        public static void CheckObject()
-        {
-            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-            try
-            {
-                Point3dCollection points = new Point3dCollection();
-                PromptPointOptions ppo = new PromptPointOptions("");
-                PromptPointResult ppr = ed.GetPoint(ppo);
-                ppo.BasePoint = ppr.Value;
-                ppo.UseDashedLine = true;
-                ppo.UseBasePoint = true;
-                PromptPointResult asd = ed.GetPoint(ppo);
-                points.Add(ppr.Value);
-                points.Add(asd.Value);
-                PromptSelectionResult prSelRes = ed.SelectFence(points);
-                if (prSelRes.Status == PromptStatus.OK)
-                {
-                    using (SelectionSet ss = prSelRes.Value)
-                    {
-                        if (ss != null)
-                        {
-                            foreach (ObjectId item in ss.GetObjectIds())
-                            {
-                                ed.WriteMessage(Environment.NewLine + item.ObjectClass.DxfName.ToString());
-                            }
-                            ed.WriteMessage("\nThe SS is good and has {0} entities.", ss.Count);
-                        }
-                        else
-                        {
-                            ed.WriteMessage("\nThe SS is bad!");
-                        }
-                    }
-                }
-                else
-                {
-                    ed.WriteMessage("\nFence selection failed!");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                ed.WriteMessage(Environment.NewLine + ex.ToString());
-            }
-        }
-
-        public static void LoadLinetype()
-        {
-            // Get the current document and database
-            Document acDoc = Application.DocumentManager.MdiActiveDocument;
-            Database acCurDb = acDoc.Database;
-
-            // Start a transaction
-            using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
-            {
-                // Open the Linetype table for read
-                LinetypeTable acLineTypTbl;
-                acLineTypTbl = acTrans.GetObject(acCurDb.LinetypeTableId,
-                                                    OpenMode.ForRead) as LinetypeTable;
-
-                string sLineTypName = "DASHED";
-
-                if (acLineTypTbl.Has(sLineTypName) == false)
-                {
-                    // Load the Center Linetype
-                    acCurDb.LoadLineTypeFile(sLineTypName, "acad.lin");
-                }
-
-                // Save the changes and dispose of the transaction
-                acTrans.Commit();
-            }
-        }
-
-        [CommandMethod("INS")]
-        public void InterSectionPoint()
-        {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-            Line pl1 = null;
-            Line pl2 = null;
-            Entity ent = null;
-            PromptEntityOptions peo = null;
-            PromptEntityResult per = null;
-
-            using (Transaction tx = db.TransactionManager.StartTransaction())
-            {
-                //Select first polyline
-                peo = new PromptEntityOptions("Select firtst line:");
-                per = ed.GetEntity(peo);
-                if (per.Status != PromptStatus.OK)
-                {
-                    return;
-                }
-                //Get the polyline entity
-                ent = (Entity)tx.GetObject(per.ObjectId, OpenMode.ForRead);
-                if (ent is Line)
-                {
-                    pl1 = ent as Line;
-                }
-                Point3dCollection p3d = new Point3dCollection
-                {
-                    pl1.StartPoint,
-                    pl1.EndPoint
-                };
-                ed.SelectFence(p3d);
-                //Select 2nd polyline
-                peo = new PromptEntityOptions("\n Select Second line:");
-                per = ed.GetEntity(peo);
-                if (per.Status != PromptStatus.OK)
-                {
-                    return;
-                }
-                ent = (Entity)tx.GetObject(per.ObjectId, OpenMode.ForRead);
-                if (ent is Line)
-                {
-                    pl2 = ent as Line;
-                }
-                Point3dCollection pts3D = new Point3dCollection();
-                //Get the intersection Points between line 1 and line 2
-                pl1.IntersectWith(pl2, Intersect.OnBothOperands, pts3D, IntPtr.Zero, IntPtr.Zero);
-                foreach (Point3d pt in pts3D)
-                {
-                    // ed.WriteMessage("\n intersection point :",pt);
-                    //   ed.WriteMessage("Point number: ", pt.X, pt.Y, pt.Z);
-                    ed.WriteMessage($"Intersect On \n X: {pt.X.ToString()} \n Y: {pt.Y.ToString()}");
-
-                    // Application.ShowAlertDialog("\n Intersection Point: " + "\nX = " + pt.X + "\nY = " + pt.Y + "\nZ = " + pt.Z);
-                }
-
-                tx.Commit();
-            }
         }
 
         private void ImportBlock()
