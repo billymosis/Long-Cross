@@ -33,6 +33,8 @@ namespace PLC
             Editor ed = Doc.Editor;
             string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
             Data oye = new Data(s);
+
+
         }
 
         [CommandMethod("AW")]
@@ -44,34 +46,34 @@ namespace PLC
             Data d = new Data(s);
             Plan x = new Plan(d);
             x.DrawPolygon();
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < d.TotalCrossNumber; i++)
             {
                 x.DrawPlanCross(i);
             }
 
-            //HecRAS hec = new HecRAS(x);
+            HecRAS hec = new HecRAS(d.DataPlan);
 
-            //List<XYZ> records = new List<XYZ>();
-            //int k = 0;
-            //foreach (Point3dCollection items in x.RAWSurfaceData)
-            //{
-            //    int j = 0;
-            //    foreach (Point3d item in items)
-            //    {
-            //        if (k < x.namaPatok.Count)
-            //        {
-            //            records.Add(new XYZ { Id = j, Name = x.namaPatok[k], Description = x.descriptionList[j], X = item.X, Y = item.Y, Z = item.Z });
-            //            j++;
-            //        }
-            //    }
-            //    k++;
-            //}
-            //using (StreamWriter writer = new StreamWriter(GetDllPath() + @"\" + "XYZ.csv", false))
-            //using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            //{
-            //    csv.WriteRecords(records);
-            //}
-            //WriteFile(hec.GEORAS, "oke.geo");
+            List<XYZ> records = new List<XYZ>();
+            int k = 0;
+            foreach (Point3dCollection items in d.DataPlan.RAWSurfaceData)
+            {
+                int j = 0;
+                foreach (Point3d item in items)
+                {
+                    if (k < d.TotalCrossNumber)
+                    {
+                        records.Add(new XYZ { Id = j, Name = d.DataPlan.namaPatok[k], Description = d.DataPlan.descriptionList[k][j], X = item.X, Y = item.Y, Z = item.Z });
+                        j++;
+                    }
+                }
+                k++;
+            }
+            using (StreamWriter writer = new StreamWriter(GetDllPath() + @"\" + "XYZ.csv", false))
+            using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                csv.WriteRecords(records);
+            }
+            WriteFile(hec.GEORAS, "oke.geo");
         }
 
         public class XYZ
@@ -106,7 +108,7 @@ namespace PLC
                 for (int i = 0; i < d.TotalCrossNumber; i++)
                 {
                     x.Draw(d.CrossDataCollection[i]);
-                    x.Place(d.CrossDataCollection[i],i);
+                    x.Place(d.CrossDataCollection[i], i);
                     pm.MeterProgress();
                 }
 

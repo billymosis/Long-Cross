@@ -1,6 +1,7 @@
 ﻿using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using static PLC.Utilities;
@@ -17,13 +18,13 @@ namespace PLC
         public Point3dCollection PointAlignment = new Point3dCollection();
 
         public List<string> namaPatok = new List<string>();
-        public List<string> descriptionList = new List<string>();
+        public List<List<string>> descriptionList = new List<List<string>>();
 
         public List<Point3dCollection> RAWSurfaceData = new List<Point3dCollection>();
         public List<Point3dCollection> SurfaceData = new List<Point3dCollection>();
         public List<Point2dCollection> CutLineData = new List<Point2dCollection>();
 
-        public Data PlanData;
+        private Data PlanData;
 
         public DataPlan(Data myData)
         {
@@ -33,10 +34,10 @@ namespace PLC
 
         public void GetData(List<DataCross> myData)
         {
-            for (int i = 0; i < PlanData.TotalCrossNumber; i++)
+            for (int i = 0; i < myData.Count; i++)
             {
                 DataCross Patok = myData[i];
-                DataCross PatokNext = i + 1 == PlanData.TotalCrossNumber ? Patok : myData[i + 1];
+                DataCross PatokNext = i + 1 == myData.Count ? Patok : myData[i + 1];
                 DataCross PatokBefore = i == 0 ? Patok : myData[i - 1];
 
                 bool isOnRight = Patok.Intersect.X > 0 ? true : false;
@@ -104,7 +105,10 @@ namespace PLC
 
                 Point3d AlignmentPoint = PolarPoints(KoordinatPatok, Angle, Patok.Intersect.X);
                 AlignmentPoint = new Point3d(AlignmentPoint.X, AlignmentPoint.Y, Patok.Intersect.Y);
-
+                if (double.IsNaN(AlignmentPoint.X))
+                {
+                    Debugger.Break();
+                }
                 PatokPoint.Add(KoordinatPatok);
 
 
@@ -124,10 +128,13 @@ namespace PLC
 
 
                 Point3dCollection RAWSurface = new Point3dCollection();
+                List<string> crossDescriptionData = new List<string>();
                 for (int j = 0; j < Dist.Count; j++)
                 {
                     Point3d PointKoordinat = PolarPoints(KoordinatPatok, Angle, Dist[j]);
-                    descriptionList.Add(Desc[j]);
+
+                    crossDescriptionData.Add(Desc[j]);
+
                     Cross.Add(PointKoordinat);
                     RAWSurface.Add(PointKoordinat);
 
@@ -183,7 +190,7 @@ namespace PLC
 
 
                 }
-
+                descriptionList.Add(crossDescriptionData);
                 RAWSurfaceData.Add(RAWSurface);
 
                 Point2d coordinateTanggulKiri2D = ConvertPoint2d(Cross[Patok.TanggulKiriIndex]);
@@ -213,6 +220,11 @@ namespace PLC
                 {
                     Cross.Add(item);
                 }
+
+                /*
+                 * PERLU DI FIX KAN MASIH ERROR UNTUK HEC-RAS
+                 * 
+                 */
                 SurfaceData.Add(Cross);
 
 

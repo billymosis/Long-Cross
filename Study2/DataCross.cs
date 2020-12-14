@@ -1,6 +1,7 @@
 ﻿using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using static PLC.Utilities;
 
 namespace PLC
@@ -50,6 +51,7 @@ namespace PLC
         }
 
 
+
         public DataCross GetData(List<List<string>> ls)
         {
             const int BATAS_KOLOM = 10;
@@ -92,7 +94,6 @@ namespace PLC
 
         public DataCross Revamp(DataCross y)
         {
-
             for (int i = 0; i < y.Elevation.Count; i++)
             {
                 if (y.Description[i].Contains("T"))
@@ -133,52 +134,56 @@ namespace PLC
                 {
                     y.MinDist = double.Parse(y.Distance[i]);
                 }
+            }
+            y.TotalLength = Math.Abs(y.MaxDist - y.MinDist);
 
-                y.TotalLength = Math.Abs(y.MaxDist - y.MinDist);
+            //Mid Point
+            if (y.Description.FindIndex(s => s.Contains("D")) != -1)
+            {
+                y.PunyaBoundaryDasar = true;
+                int ds = y.Description.FindIndex(s => s.Contains("D"));
+                int de = y.Description.FindIndex(ds + 1, s => s.Contains("D"));
 
 
-                //Mid Point
-                if (y.Description.FindIndex(s => s.Contains("D")) != -1)
+                Point3d StartPoint = new Point3d(double.Parse(y.Distance[ds]), double.Parse(y.Elevation[ds]), 0);
+                Point3d EndPoint = new Point3d(double.Parse(y.Distance[de]), double.Parse(y.Elevation[de]), 0);
+
+                y.DasarKiri = StartPoint.Y;
+                y.DasarKanan = EndPoint.Y;
+                y.DasarKiriIndex = ds;
+                y.DasarKananIndex = de;
+
+                Vector3d v = StartPoint.GetVectorTo(EndPoint);
+                y.MidPoint = new Point3d(double.Parse(y.Distance[ds]), double.Parse(y.Elevation[ds]), 0) + v * 0.5;
+                if (ds - de == -1)
                 {
-                    y.PunyaBoundaryDasar = true;
-                    int ds = y.Description.FindIndex(s => s.Contains("D"));
-                    int de = y.Description.FindIndex(ds + 1, s => s.Contains("D"));
-
-
-                    Point3d StartPoint = new Point3d(double.Parse(y.Distance[ds]), double.Parse(y.Elevation[ds]), 0);
-                    Point3d EndPoint = new Point3d(double.Parse(y.Distance[de]), double.Parse(y.Elevation[de]), 0);
-
-                    y.DasarKiri = StartPoint.Y;
-                    y.DasarKanan = EndPoint.Y;
-                    y.DasarKiriIndex = ds;
-                    y.DasarKananIndex = de;
-
-                    Vector3d v = StartPoint.GetVectorTo(EndPoint);
-                    y.MidPoint = new Point3d(double.Parse(y.Distance[ds]), double.Parse(y.Elevation[ds]), 0) + v * 0.5;
-                    if (ds - de == -1)
-                    {
-                        y.Intersect = FindIntersection2d(y.MidPoint, new Point3d(y.MidPoint.X, y.MinElv, 0), StartPoint, EndPoint);
-                    }
-                    else
-                    {
-                        int qq = y.Distance.ConvertAll(k => double.Parse(k)).FindIndex(l => l >= y.MidPoint.X);
-                        int qw = y.Distance.ConvertAll(k => double.Parse(k)).FindLastIndex(l => l <= y.MidPoint.X);
-                        Point3d q = new Point3d(double.Parse(y.Distance[qw]), double.Parse(y.Elevation[qw]), 0);
-                        Point3d w = new Point3d(double.Parse(y.Distance[qq]), double.Parse(y.Elevation[qq]), 0);
-                        y.Intersect = FindIntersection2d(y.MidPoint, new Point3d(y.MidPoint.X, y.MinElv, 0), q, w);
-                    }
-
+                    y.Intersect = FindIntersection2d(y.MidPoint, new Point3d(y.MidPoint.X, y.MinElv, 0), StartPoint, EndPoint);
                 }
                 else
                 {
-                    y.PunyaBoundaryDasar = false;
-                    y.PatokSaja = true;
+                    int qq = y.Distance.ConvertAll(k => double.Parse(k)).FindIndex(l => l >= y.MidPoint.X);
+                    int qw = y.Distance.ConvertAll(k => double.Parse(k)).FindLastIndex(l => l <= y.MidPoint.X);
+                    Point3d q = new Point3d(double.Parse(y.Distance[qw]), double.Parse(y.Elevation[qw]), 0);
+                    Point3d w = new Point3d(double.Parse(y.Distance[qq]), double.Parse(y.Elevation[qq]), 0);
+                    y.Intersect = FindIntersection2d(y.MidPoint, new Point3d(y.MidPoint.X, y.MinElv, 0), q, w);
+                    if (double.IsNaN(y.Intersect.X))
+                    {
+                        y.Intersect = new Point2d(y.MidPoint.X, y.MinElv);
+                    }
                 }
 
-
+            }
+            else
+            {
+                y.PunyaBoundaryDasar = false;
+                y.PatokSaja = true;
             }
 
             return y;
+
         }
     }
+
+
 }
+

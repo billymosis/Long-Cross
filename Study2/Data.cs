@@ -15,8 +15,7 @@ namespace PLC
         public string FilePath { get; set; }
         public int TotalCrossNumber { get; set; }
         public List<DataCross> CrossDataCollection = new List<DataCross>();
-        public List<DataPlan> PlanDataCollection = new List<DataPlan>();
-        public DataPlan PlanData;
+        public DataPlan DataPlan;
         public List<List<string>> LineData = new List<List<string>>();
 
         public Data(string FilePath)
@@ -43,7 +42,7 @@ namespace PLC
 
         public void GetPlanData()
         {
-            PlanData = new DataPlan(this);
+            DataPlan = new DataPlan(this);
         }
 
 

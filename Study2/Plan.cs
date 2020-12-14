@@ -28,7 +28,7 @@ namespace PLC
 
         public void DrawPlanCross(int index)
         {
-            DataPlan DP = myData.PlanData;
+            DataPlan DP = myData.DataPlan;
             using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
             {
                 using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
@@ -48,9 +48,8 @@ namespace PLC
                             using (DBText tx = new DBText())
                             {
                                 tx.Position = DP.RAWSurfaceData[index][i];
-                                tx.TextString = "oke"; //desc!!!
+                                tx.TextString = DP.descriptionList[index][i];
                                 btr.AppendEntity(tx);
-
                             }
                         }
 
@@ -82,7 +81,7 @@ namespace PLC
 
         public void DrawPolygon()
         {
-            DataPlan DP = myData.PlanData;
+            DataPlan DP = myData.DataPlan;
             //if (CrossNumber > 620)
             //{
             //    ed.WriteMessage(Patok.NamaPatok + " : " + " Angle " + CR2D(AngleBefore).ToString() + " " + CR2D(AngleNext).ToString() + " " + CR2D(Angle).ToString() + "\n");
