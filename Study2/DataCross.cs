@@ -13,6 +13,9 @@ namespace PLC
         public List<string> Description { get; set; }
 
         public bool PunyaBoundaryDasar { get; set; }
+        /// <summary>
+        /// Patok Saja tidak punya property seperti T1,D1
+        /// </summary>
         public bool PatokSaja { get; set; }
 
         public Point3d MidPoint { get; set; }
@@ -42,8 +45,15 @@ namespace PLC
         public double TotalLength { get; set; }
         public double MaxElv { get; set; }
         public double MinElv { get; set; }
+
         public string Bangunan { get; set; }
         public string TipeBangunan { get; set; }
+
+
+        /// <summary>
+        /// Terdapat bangunan di data patok
+        /// </summary>
+        public bool PunyaBangunan { get; set; } = false;
 
         public DataCross(List<List<string>> ls)
         {
@@ -61,12 +71,17 @@ namespace PLC
             Description = ls[2];
 
             NamaPatok = Elevation[0];
+            if (string.IsNullOrEmpty(NamaPatok))
+            {
+                return null;
+            }
             KX = double.Parse(Elevation[1]);
             KY = double.Parse(Elevation[2]);
             KZ = double.Parse(Elevation[3]);
             if (!string.IsNullOrEmpty(Distance[1]))
             {
                 Bangunan = Distance[1];
+                PunyaBangunan = true;
             }
             if (!string.IsNullOrEmpty(Distance[2]))
             {
@@ -81,7 +96,7 @@ namespace PLC
 
 
             // Remove trailing empty string
-            int m = Elevation.FindIndex(x => x == "");
+            int m = Elevation.FindIndex(x => x == string.Empty);
             int n = Elevation.Count;
             if (!(m == -1))
             {
@@ -143,7 +158,11 @@ namespace PLC
                 y.PunyaBoundaryDasar = true;
                 int ds = y.Description.FindIndex(s => s.Contains("D"));
                 int de = y.Description.FindIndex(ds + 1, s => s.Contains("D"));
-
+                if (de == -1 || ds ==-1)
+                {
+                    ds = 0;
+                    de = y.Elevation.Count-1;
+                }
 
                 Point3d StartPoint = new Point3d(double.Parse(y.Distance[ds]), double.Parse(y.Elevation[ds]), 0);
                 Point3d EndPoint = new Point3d(double.Parse(y.Distance[de]), double.Parse(y.Elevation[de]), 0);

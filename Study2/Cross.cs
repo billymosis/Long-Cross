@@ -393,52 +393,52 @@ namespace PLC
                                 btr.AppendEntity(brf);
                                 tr.AddNewlyCreatedDBObject(brf, true);
 
-                                using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
-                                {
-                                    Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
-                       new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
-                                    filter.Definition = filterDef;
+                       //         using (Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter filter = new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilter())
+                       //         {
+                       //             Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition filterDef =
+                       //new Autodesk.AutoCAD.DatabaseServices.Filters.SpatialFilterDefinition(ptCol, normal, elevx, 0, 0, true);
+                       //             filter.Definition = filterDef;
 
-                                    // Define the name of the extension dictionary and entry name
-                                    string dictName = "ACAD_FILTER";
-                                    string spName = "SPATIAL";
+                       //             // Define the name of the extension dictionary and entry name
+                       //             string dictName = "ACAD_FILTER";
+                       //             string spName = "SPATIAL";
 
-                                    // Check to see if the Extension Dictionary exists, if not create it
-                                    if (brf.ExtensionDictionary.IsNull)
-                                    {
-                                        brf.CreateExtensionDictionary();
-                                    }
+                       //             // Check to see if the Extension Dictionary exists, if not create it
+                       //             if (brf.ExtensionDictionary.IsNull)
+                       //             {
+                       //                 brf.CreateExtensionDictionary();
+                       //             }
 
-                                    // Open the Extension Dictionary for write
-                                    DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
+                       //             // Open the Extension Dictionary for write
+                       //             DBDictionary extDict = tr.GetObject(brf.ExtensionDictionary, OpenMode.ForWrite) as DBDictionary;
 
-                                    // Check to see if the dictionary for clipped boundaries exists,
-                                    // and add the spatial filter to the dictionary
-                                    if (extDict.Contains(dictName))
-                                    {
-                                        DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
+                       //             // Check to see if the dictionary for clipped boundaries exists,
+                       //             // and add the spatial filter to the dictionary
+                       //             if (extDict.Contains(dictName))
+                       //             {
+                       //                 DBDictionary filterDict = tr.GetObject(extDict.GetAt(dictName), OpenMode.ForWrite) as DBDictionary;
 
-                                        if (filterDict.Contains(spName))
-                                        {
-                                            filterDict.Remove(spName);
-                                        }
+                       //                 if (filterDict.Contains(spName))
+                       //                 {
+                       //                     filterDict.Remove(spName);
+                       //                 }
 
-                                        filterDict.SetAt(spName, filter);
-                                    }
-                                    else
-                                    {
-                                        using (DBDictionary filterDict = new DBDictionary())
-                                        {
-                                            extDict.SetAt(dictName, filterDict);
+                       //                 filterDict.SetAt(spName, filter);
+                       //             }
+                       //             else
+                       //             {
+                       //                 using (DBDictionary filterDict = new DBDictionary())
+                       //                 {
+                       //                     extDict.SetAt(dictName, filterDict);
 
-                                            tr.AddNewlyCreatedDBObject(filterDict, true);
-                                            filterDict.SetAt(spName, filter);
-                                        }
-                                    }
+                       //                     tr.AddNewlyCreatedDBObject(filterDict, true);
+                       //                     filterDict.SetAt(spName, filter);
+                       //                 }
+                       //             }
 
-                                    tr.AddNewlyCreatedDBObject(filter, true);
-                                }
-                            }
+                       //             tr.AddNewlyCreatedDBObject(filter, true);
+                       //         }
+                           }
 
                             //Tambah Block Legend
 

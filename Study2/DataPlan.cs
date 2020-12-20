@@ -1,4 +1,6 @@
-﻿using Autodesk.AutoCAD.Geometry;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,7 +26,7 @@ namespace PLC
         public List<Point3dCollection> SurfaceData = new List<Point3dCollection>();
         public List<Point2dCollection> CutLineData = new List<Point2dCollection>();
 
-        private Data PlanData;
+        private readonly Data PlanData;
 
         public DataPlan(Data myData)
         {
@@ -40,13 +42,14 @@ namespace PLC
                 DataCross PatokNext = i + 1 == myData.Count ? Patok : myData[i + 1];
                 DataCross PatokBefore = i == 0 ? Patok : myData[i - 1];
 
-                bool isOnRight = Patok.Intersect.X > 0 ? true : false;
-
                 double AngleNext = 0;
                 double AngleBefore = 0;
 
                 namaPatok.Add(Patok.NamaPatok);
-
+                if (Patok.Elevation.Contains(string.Empty))
+                {
+                    Debugger.Break();
+                }
                 List<double> Elev = Patok.Elevation.ConvertAll(x => double.Parse(x));
                 List<double> Dist = Patok.Distance.ConvertAll(x => double.Parse(x));
                 List<string> Desc = Patok.Description;
@@ -105,10 +108,12 @@ namespace PLC
 
                 Point3d AlignmentPoint = PolarPoints(KoordinatPatok, Angle, Patok.Intersect.X);
                 AlignmentPoint = new Point3d(AlignmentPoint.X, AlignmentPoint.Y, Patok.Intersect.Y);
+
                 if (double.IsNaN(AlignmentPoint.X))
                 {
                     Debugger.Break();
                 }
+
                 PatokPoint.Add(KoordinatPatok);
 
 
@@ -118,7 +123,15 @@ namespace PLC
                     {
                         PointAlignment.Add(AlignmentPoint);
                     }
-                    else { PointAlignment.Add(PointAlignment[i - 1]); }
+                    else
+                    {
+
+                        if (string.IsNullOrEmpty(Patok.Bangunan))
+                        {
+
+                            PointAlignment.Add(PointAlignment[PointAlignment.Count - 1]);
+                        }
+                    }
                 }
                 else
                 {
@@ -129,10 +142,11 @@ namespace PLC
 
                 Point3dCollection RAWSurface = new Point3dCollection();
                 List<string> crossDescriptionData = new List<string>();
+
                 for (int j = 0; j < Dist.Count; j++)
                 {
                     Point3d PointKoordinat = PolarPoints(KoordinatPatok, Angle, Dist[j]);
-
+                    PointKoordinat = new Point3d(PointKoordinat.X, PointKoordinat.Y, Elev[j]);
                     crossDescriptionData.Add(Desc[j]);
 
                     Cross.Add(PointKoordinat);
@@ -158,13 +172,18 @@ namespace PLC
                             {
                                 PointDasarKanan.Add(PointKoordinat);
                             }
+
+
                         }
                         else
                         {
-                            PointTanggulKiri.Add(PointTanggulKiri[i - 1]);
-                            PointTanggulKanan.Add(PointTanggulKanan[i - 1]);
-                            PointDasarKiri.Add(PointDasarKiri[i - 1]);
-                            PointDasarKanan.Add(PointDasarKanan[i - 1]);
+                            if (string.IsNullOrEmpty(Patok.Bangunan))
+                            {
+                                PointTanggulKiri.Add(PointTanggulKiri[PointTanggulKiri.Count - 1]);
+                                PointTanggulKanan.Add(PointTanggulKanan[PointTanggulKanan.Count - 1]);
+                                PointDasarKiri.Add(PointDasarKiri[PointDasarKiri.Count - 1]);
+                                PointDasarKanan.Add(PointDasarKanan[PointDasarKanan.Count - 1]);
+                            }
                         }
 
                     }
@@ -193,6 +212,11 @@ namespace PLC
                 descriptionList.Add(crossDescriptionData);
                 RAWSurfaceData.Add(RAWSurface);
 
+                //if (this.PointAlignment.Count != this.PointTanggulKiri.Count)
+                //{
+                //    Debugger.Break();
+                //}
+
                 Point2d coordinateTanggulKiri2D = ConvertPoint2d(Cross[Patok.TanggulKiriIndex]);
                 Point2d coordinateTanggulKanan2D = ConvertPoint2d(Cross[Patok.TanggulKananIndex]);
                 Point2d midPoint = GetMidPoint(coordinateTanggulKiri2D, coordinateTanggulKanan2D);
@@ -207,6 +231,7 @@ namespace PLC
 
 
                 List<Point3d> CrossPoint = ConvertP3DC2List(Cross);
+
                 CrossPoint.RemoveRange(0, Patok.TanggulKiriIndex);
                 int UpdatePatokKanan = Patok.TanggulKananIndex - Patok.TanggulKiriIndex + 1;
                 if (UpdatePatokKanan < 0)
@@ -221,17 +246,36 @@ namespace PLC
                     Cross.Add(item);
                 }
 
-                /*
-                 * PERLU DI FIX KAN MASIH ERROR UNTUK HEC-RAS
-                 * 
-                 */
                 SurfaceData.Add(Cross);
-
-
-
             }
 
         }
+
+        /// <summary>
+        /// Untuk Check Error yang terjadi ketika pembetukan poligon cross.
+        /// nanti hubungannya akah ke derajat antara patok dan azimuth untuk next feature.
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="NamaPatok"></param>
+        /// <param name="AngleBefore"></param>
+        /// <param name="AngleNext"></param>
+        /// <param name="Angle"></param>
+        /// <param name="SlopeBefore"></param>
+        /// <param name="SlopeNext"></param>
+        /// <param name="SQuadrant"></param>
+        private static void CheckErrorDerajat(int index, string NamaPatok, double AngleBefore, double AngleNext, double Angle, double SlopeBefore, double SlopeNext, double SQuadrant)
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+
+            if (index > 620)
+            {
+                ed.WriteMessage(NamaPatok + " : " + " Angle " + CR2D(AngleBefore).ToString() + " " + CR2D(AngleNext).ToString() + " " + CR2D(Angle).ToString() + "\n");
+                ed.WriteMessage(NamaPatok + " : " + " Slope " + SlopeBefore.ToString() + " " + SlopeNext.ToString() + "\n");
+                ed.WriteMessage(NamaPatok + " : " + " Quadrant " + SQuadrant + "\n");
+            }
+        }
+
 
     }
 }

@@ -240,7 +240,7 @@ namespace PLC
 
         public static void WriteFile(string content, string filename)
         {
-            using (StreamWriter file = new StreamWriter(GetDllPath() + @"\" + filename, false))
+            using (StreamWriter file = new StreamWriter(filename, false))
             {
 
                 file.WriteLine(content);

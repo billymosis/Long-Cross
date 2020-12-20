@@ -79,34 +79,20 @@ namespace PLC
 
         }
 
+
+        /// <summary>
+        /// Plot Poligon tiap Patok, As Canal/ Aligment, Tanggul Kiri, Tanggul Kanan, Dasar Kiri, Dasar Kanan.
+        /// Index adalah Plot sampai patok ke berapa.
+        /// </summary>
         public void DrawPolygon()
         {
             DataPlan DP = myData.DataPlan;
-            //if (CrossNumber > 620)
-            //{
-            //    ed.WriteMessage(Patok.NamaPatok + " : " + " Angle " + CR2D(AngleBefore).ToString() + " " + CR2D(AngleNext).ToString() + " " + CR2D(Angle).ToString() + "\n");
-            //    ed.WriteMessage(Patok.NamaPatok + " : " + " Slope " + SlopeBefore.ToString() + " " + SlopeNext.ToString() + "\n");
-            //    ed.WriteMessage(Patok.NamaPatok + " : " + " Quadrant " + SQuadrant + "\n");
-            //}
-
             using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
             {
                 using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
                 {
                     using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
                     {
-                        //using (Line L = new Line())
-                        //{
-                        //    L.StartPoint = PolarPoints(Point, Angle, Patok.MaxDist);
-                        //    L.EndPoint = PolarPoints(Point, Angle, Patok.MinDist);
-                        //    L.ColorIndex = 1;
-                        //    btr.AppendEntity(L);
-                        //    tr.AddNewlyCreatedDBObject(L, true);
-                        //}
-
-
-                        //MID ALIGNMENT
-
 
                         // ALIGNMENT ADALAH KOORDINAT MID POINT
                         using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointAlignment, false))
@@ -121,7 +107,7 @@ namespace PLC
                             PL.ColorIndex = 2;
                             btr.AppendEntity(PL);
                         };
-
+                        
                         using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointTanggulKiri, false))
                         {
                             btr.AppendEntity(PL);
@@ -138,7 +124,6 @@ namespace PLC
                         {
                             btr.AppendEntity(PL);
                         };
-
 
                     }
                 }

@@ -20,7 +20,6 @@ namespace PLC
                 case "All":
                     using (Transaction tr = doc.TransactionManager.StartTransaction())
                     {
-                        BlockTable bt = tr.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
                         BlockTableRecord btr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
                         PromptDoubleResult dob = ed.GetDouble("\nElevasi:");
                         if (dob.Status == PromptStatus.Cancel)
@@ -68,7 +67,6 @@ namespace PLC
                         TypedValue[] TV = new TypedValue[1];
                         TV.SetValue(new TypedValue((int)DxfCode.Start, "TEXT,MTEXT"), 0);
                         SelectionFilter SF = new SelectionFilter(TV);
-                        PromptSelectionOptions pso = new PromptSelectionOptions();
                         PromptSelectionResult selectionResult = ed.GetSelection(SF);
                         PromptDoubleResult dob = ed.GetDouble("\nElevasi:");
                         if (dob.Status == PromptStatus.Cancel)
