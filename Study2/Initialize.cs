@@ -26,18 +26,6 @@ namespace PLC
             LoadLinetype();
         }
 
-
-        [CommandMethod("DAA")]
-        public static void DAA()
-        {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
-            Data oye = new Data(s);
-
-
-        }
-
         [CommandMethod("AW")]
         public static void AW()
         {
@@ -98,7 +86,6 @@ namespace PLC
             OpenFileDialog OFD = new OpenFileDialog("Select Cross File", null, "csv; txt", "SelectCross", OpenFileDialog.OpenFileDialogFlags.AllowMultiple);
 
             OFD.ShowDialog();
-            ed.WriteMessage(OFD.Filename);
             string[] fileList = OFD.GetFilenames();
             foreach (string path in fileList)
             {
