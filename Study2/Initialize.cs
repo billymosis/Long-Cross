@@ -22,6 +22,7 @@ namespace PLC
             Database db = doc.Database;
             Editor ed = doc.Editor;
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
+            Licensing.CheckLicense CheckLicense = new PLC.Licensing.CheckLicense();
             ImportBlock();
             LoadLinetype();
         }

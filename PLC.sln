@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.28307.1062
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PLC", "Study2\PLC.csproj", "{FEEEDBB5-97A3-44C9-BC8A-EC01F7545530}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3F080765-0AF5-4083-92C4-93D194924BB3} = {3F080765-0AF5-4083-92C4-93D194924BB3}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyLicense.Lib", "EasyLicense.Lib\EasyLicense.Lib.csproj", "{3F080765-0AF5-4083-92C4-93D194924BB3}"
 EndProject
