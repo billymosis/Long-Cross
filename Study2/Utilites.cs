@@ -1,5 +1,6 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,33 @@ namespace PLC
 {
     public static class Utilities
     {
+        public static void ImportBlock()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            db.Insunits = UnitsValue.Millimeters;
+
+            using (Database dbs = new Database(false, true))
+            {
+                dbs.ReadDwgFile(@"E:\AutoCAD Project\Study2\Study2\data\Baloon2.dwg", FileOpenMode.OpenForReadAndAllShare, true, "");
+                using (Transaction tr = dbs.TransactionManager.StartTransaction())
+                {
+                    using (BlockTable bt = tr.GetObject(dbs.BlockTableId, OpenMode.ForRead) as BlockTable)
+                    {
+                        using (ObjectIdCollection ids = new ObjectIdCollection())
+                        {
+                            foreach (ObjectId item in bt)
+                            {
+                                ids.Add(item);
+                            }
+                            tr.Commit();
+                            db.WblockCloneObjects(ids, db.BlockTableId, new IdMapping(), DuplicateRecordCloning.Ignore, false);
+                        }
+                    }
+                }
+            }
+        }
         public static void LoadLinetype()
         {
             // Get the current document and database

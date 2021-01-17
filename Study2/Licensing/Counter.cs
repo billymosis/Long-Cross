@@ -4,19 +4,19 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.IsolatedStorage;
-using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 
-namespace EasyLicense.Lib
+namespace PLC.Licensing
 {
-    public class DataLicensing
+
+    public class Counter
     {
         public static byte[] MyIV = { 140, 212, 3, 14, 55, 76, 71, 88, 9, 10, 65, 172, 138, 149, 151, 178 };
 
-        public static byte[] myKey = MD5.Create().ComputeHash(Encoding.Unicode.GetBytes("Billy Ganteng"));
+        public static byte[] myKey = Encoding.UTF8.GetBytes("8Tf78#tVVIMPg!0j1t30X&qW");
 
         public static void DateChecker()
         {
@@ -64,6 +64,26 @@ namespace EasyLicense.Lib
             {
                 c.UsedDateCount = usableday.Days - remaining.Days;
                 c.LastUseDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture);
+                if (c.FirstInstall)
+                {
+                    c.LicenseLimit = 50;
+                }
+                if (now.Date != last.Date && c.FirstInstall == false)
+                {
+                    TimeSpan TS = now - last;
+                    if (TS.Days > 1)
+                    {
+                        c.DayCounter = c.DayCounter + TS.Days;
+                        c.LicenseLimit = 50;
+                    }
+                    else
+                    {
+                        c.DayCounter++;
+                        c.LicenseLimit = 50;
+                    }
+
+                }
+                c.FirstInstall = false;
                 byte[] data = EncryptToJSON(c);
                 SaveSettingsInIsoStorage("Settings.dat", data);
                 Console.WriteLine("In Range");
@@ -103,29 +123,65 @@ namespace EasyLicense.Lib
             }
         }
 
+        public static void DecreaseAndUpdateCounter()
+        {
+            Dictionary<string, string> j = ReadJSON();
+            Config c = new Config(j);
+            Console.WriteLine("awal :" + c.LicenseLimit);
+            c.LicenseLimit = c.LicenseLimit - 10;
+            Console.WriteLine("menjadi :" + c.LicenseLimit);
+            byte[] data = EncryptToJSON(c);
+            SaveSettingsInIsoStorage("Settings.dat", data);
+            DateChecker();
+        }
+
+        public static void SetAndUpdateCounter(int value)
+        {
+            Dictionary<string, string> j = ReadJSON();
+            Config c = new Config(j);
+            Console.WriteLine("awal :" + c.LicenseLimit);
+            c.LicenseLimit = value;
+            Console.WriteLine("menjadi :" + c.LicenseLimit);
+            byte[] data = EncryptToJSON(c);
+            SaveSettingsInIsoStorage("Settings.dat", data);
+            DateChecker();
+        }
+
         public static void InitialWrite()
         {
+            const int LICENSE_YEAR_LENGTH = -1;
             string filename = "Settings.dat";
             string LicensePath = @"E:\AutoCAD Project\EasyLicense-master\EasyLicense\DemoProject\bin\Debug\license.lic";
+
+            IsolatedStorageFile applicationStorageFileForUser = IsolatedStorageFile.GetUserStoreForAssembly();
+            bool FileExist = applicationStorageFileForUser.FileExists(filename);
+
             XmlDocument myLicense = new XmlDocument();
             myLicense.Load(LicensePath);
             XmlNodeList x = myLicense.GetElementsByTagName("license");
-            string date = x[0].Attributes["expiration"].Value;
-            DateTime myDate = Convert.ToDateTime(date);
-
-            Config coy = new Config
+            string ExpirationDate = x[0].Attributes["expiration"].Value;
+            TimeSpan DayCounter = DateTime.UtcNow - Convert.ToDateTime(ExpirationDate).AddYears(LICENSE_YEAR_LENGTH);
+            if (FileExist)
             {
-                TimeTamper = false,
-                ExpiredDate = date,
-                LastUseDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture),
-                UsedDateCount = 0,
-            };
-            TimeSpan remaining = Convert.ToDateTime(coy.ExpiredDate) - Convert.ToDateTime(coy.LastUseDate);
-            coy.RemainingDay = remaining.Days;
+                DateChecker();
+            }
+            else
+            {
+                Config coy = new Config
+                {
+                    ExpiredDate = ExpirationDate,
+                    LastUseDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture),
+                    UsedDateCount = 0,
+                    DayCounter = DayCounter.Days,
+                    FirstInstall = true,
+                };
+                TimeSpan remaining = Convert.ToDateTime(coy.ExpiredDate) - Convert.ToDateTime(coy.LastUseDate);
+                coy.RemainingDay = remaining.Days;
+                byte[] data = EncryptToJSON(coy);
+                SaveSettingsInIsoStorage(filename, data);
+                DateChecker();
+            }
 
-            byte[] data = EncryptToJSON(coy);
-            SaveSettingsInIsoStorage(filename, data);
-            DateChecker();
         }
 
         public static void Main()
@@ -146,6 +202,11 @@ namespace EasyLicense.Lib
                 case 3:
                     {
                         DateChecker();
+                        break;
+                    }
+                case 4:
+                    {
+                        DecreaseAndUpdateCounter();
                         break;
                     }
                 default:
@@ -313,11 +374,13 @@ namespace EasyLicense.Lib
         public Config(Dictionary<string, string> D)
         {
             TimeTamper = bool.Parse(D["TimeTamper"]);
+            FirstInstall = bool.Parse(D["FirstInstall"]);
             LastUseDate = D["LastUseDate"];
             ExpiredDate = D["ExpiredDate"];
             RemainingDay = int.Parse(D["RemainingDay"]);
             DayCounter = int.Parse(D["DayCounter"]);
             UsedDateCount = int.Parse(D["UsedDateCount"]);
+            LicenseLimit = int.Parse(D["LicenseLimit"]);
         }
 
         public int DayCounter { get; set; }
@@ -327,5 +390,8 @@ namespace EasyLicense.Lib
         public bool TimeTamper { get; set; }
         public bool Licensed { get; set; }
         public int UsedDateCount { get; set; }
+        public int LicenseLimit { get; set; }
+        public bool FirstInstall { get; set; }
     }
+
 }

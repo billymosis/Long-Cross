@@ -50,7 +50,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataLicensing.cs" />
     <Compile Include="License\Exception\LicenseWrongMachine.cs" />
     <Compile Include="License\HardwareInfo.cs" />
     <Compile Include="License\Validator\AbstractLicenseValidator.cs" />

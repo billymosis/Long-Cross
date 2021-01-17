@@ -84,8 +84,13 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.XML" />
+    <Reference Include="WindowsBase" />
     <!--ACA References Begin-->
     <!--ACA Refences End-->
     <!--AME Referebces Begin-->
@@ -96,15 +101,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChangeElevation.cs" />
+    <Compile Include="Command.cs" />
     <Compile Include="Cross.cs" />
     <Compile Include="DataCross.cs" />
     <Compile Include="Data.cs" />
     <Compile Include="DataKerusakan.cs" />
     <Compile Include="DataPlan.cs" />
     <Compile Include="DrawTable.cs" />
+    <Compile Include="Global.cs" />
+    <Compile Include="GUI\About.xaml.cs">
+      <DependentUpon>About.xaml</DependentUpon>
+    </Compile>
     <Compile Include="HecRAS.cs" />
     <Compile Include="Initialize.cs" />
     <Compile Include="Licensing\CheckLicense.cs" />
+    <Compile Include="Licensing\Counter.cs" />
     <Compile Include="NextFeature.cs" />
     <Compile Include="Plan.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -174,6 +185,18 @@
     <Content Include="!todo.html">
       <DependentUpon>!todo.md</DependentUpon>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EasyLicense.Lib\EasyLicense.Lib.csproj">
+      <Project>{3f080765-0af5-4083-92c4-93d194924bb3}</Project>
+      <Name>EasyLicense.Lib</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="GUI\About.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
