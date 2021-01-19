@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using static PLC.Utilities;
@@ -25,15 +26,23 @@ namespace PLC
             Database db = doc.Database;
             Editor ed = doc.Editor;
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
-            PLC.Licensing.Counter.InitialWrite();
-            Licensing.CheckLicense CheckLicense = new PLC.Licensing.CheckLicense();
+
+
+            Global.CheckLicense = new PLC.Licensing.CheckLicense();
+            PLC.Licensing.TrialData.InitialWrite();
+            ed.WriteMessage(string.Join(Environment.NewLine, PLC.Licensing.TrialData.ReadJSON()));
+
 
             Application.DocumentManager.DocumentLockModeChanged += new DocumentLockModeChangedEventHandler(VetoCommandIfInList);
 
             //Set Global variable
-            Global.Licensed = CheckLicense.License2;
-            Global.counter = int.Parse(PLC.Licensing.Counter.ReadJSON()["LicenseLimit"]);
+            //Change Licensed to false to set Trial Mode
+            Global.Licensed = Global.CheckLicense.License2;
+            //Global.Licensed = false;
+            Global.counter = new Counter(int.Parse(PLC.Licensing.TrialData.ReadJSON()["LicenseLimit"]));
 
+
+            CanalCADTray();
             ImportBlock();
             LoadLinetype();
         }
@@ -46,6 +55,18 @@ namespace PLC
             }
         }
 
+        private void CanalCADTray()
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+            Global.MyTray = new TrayItem
+            {
+                ToolTipText = "Canal CAD",
+                Icon = new Icon(SystemIcons.Information, 16, 16),
+            };
+            Application.StatusBar.TrayItems.Add(Global.MyTray);
+        }
+
 
         public void Terminate()
 
@@ -56,7 +77,7 @@ namespace PLC
 
             Application.DocumentManager.DocumentLockModeChanged -= new DocumentLockModeChangedEventHandler(VetoCommandIfInList);
 
-            Licensing.Counter.SetAndUpdateCounter(Global.counter);
+            Licensing.TrialData.SetAndUpdateCounter(Global.counter.value);
             Console.WriteLine("Cleaning up...");
         }
     }

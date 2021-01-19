@@ -24,12 +24,11 @@ namespace PLC.Licensing
         public CheckLicense()
         {
             Licensed();
-
         }
 
         public bool Licensed()
         {
-            string publicKey = "<RSAKeyValue><Modulus>3Q3g9xwL0qdl0YzytU0Bg1rd0kqcQeIaqxgD74ay/RBGUbQh5oOeEikpinXw8rFUY81AZwkkD/viXRNDjLRRmcWV347RfloCYU2cZwhk/CnK5LJUSn4+bWf08HfGW6o6joXoTTDvqufnSRNLZignlNyOrer+OTJ7C2nIleAM6jk=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
+            const string publicKey = "<RSAKeyValue><Modulus>0OkWgMgbsdWHvYM15swa/31+pp+ySS6Wv+HpWy1UGWmTk45s8x4301D0BbTL+FwrRWECLxlfy1dozrz2JYU50vP6U+2ekygG37ltYCtbkhvyp8aBsTHIrH8Inq7wIz4q3GdCRPZLfUnwA0YIccMSnJa0UHH1+Mz161K87+j+qsU=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
             LicenseValidator validator = new LicenseValidator(publicKey, LicensePath);
             try
             {

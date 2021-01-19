@@ -8,6 +8,7 @@ using CsvHelper;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using static PLC.Utilities;
@@ -17,15 +18,40 @@ namespace PLC
 
     public class Command
     {
+        /// <summary>
+        /// Switch Trial and Full Licensed Mode
+        /// </summary>
+        [CommandMethod("XX")]
+        public static void XX()
+        {
+            if (Global.Licensed)
+            {
+                Global.Licensed = false;
+            }
+            else
+            {
+                Global.Licensed = true;
+            }
+        }
+
+        [CommandMethod("BUBBLE")]
+        public static void Bubble()
+        {
+            Utilities.Bubble("Test", "This is Bubble");
+        }
+
+        private static void Bw_Closed(object sender, TrayItemBubbleWindowClosedEventArgs e)
+        {
+            TrayItemBubbleWindow x = sender as TrayItemBubbleWindow;
+            x.Dispose();
+        }
 
         [CommandMethod("CABOUT")]
         public static void CABOUT()
         {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            Licensing.CheckLicense x = new PLC.Licensing.CheckLicense();
-            GUI.About ab = new GUI.About(x);
+            GUI.About ab = new GUI.About(Global.CheckLicense);
             Application.ShowModalWindow(Application.MainWindow.Handle, ab, false);
+            Initialization init = new Initialization();
         }
 
         [CommandMethod("CX")]
@@ -33,18 +59,15 @@ namespace PLC
         {
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
-            Global.counter--;
-            ed.WriteMessage($"Global : {Global.counter.ToString()}");
-            Initialization.cmdList.Add("LINE");
+            ed.WriteMessage(string.Join(Environment.NewLine, PLC.Licensing.TrialData.ReadJSON()));
         }
 
         [CommandMethod("CZ")]
         public static void CZ()
         {
-
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
-            Global.counter = 50;
+            Global.counter.value = 50;
             ed.WriteMessage($"Global : {Global.counter.ToString()}");
         }
 
@@ -142,7 +165,23 @@ namespace PLC
             x.DrawPolygon();
             for (int i = 0; i < d.TotalCrossNumber; i++)
             {
-                x.DrawPlanCross(i);
+                if (Global.Licensed)
+                {
+                    x.DrawPlanCross(i);
+                }
+                else
+                {
+                    if (Global.counter.value > 0)
+                    {
+                        x.DrawPlanCross(i);
+                        Global.AddCounter(-1);
+                    }
+                    else
+                    {
+                        Utilities.Bubble("Limit",$"You have reached your limit, trial will be reseted tomorrow at {DateTime.Now.AddDays(1).ToShortDateString()}.");
+                    }
+                }
+
             }
 
             HecRAS hec = new HecRAS(d.DataPlan);

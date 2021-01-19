@@ -29,8 +29,8 @@ namespace EasyLicense.Lib.License.Validator
         public string GetHardwareString()
         {
             string key = MotherboardName + CpuId;
-            string str = CalculateMd5Hash(key) + "d0b71512-3c2a-4772-acec-8c5b78c6ad07";
-            return str.Substring(0, 6);
+            string str = CalculateMd5Hash(key + "d0b71512-3c2a-4772-acec-8c5b78c6ad07");
+            return str.Substring(0, 25);
         }
 
         public string MotherboardName

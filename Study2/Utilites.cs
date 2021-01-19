@@ -2,6 +2,7 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Windows;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,6 +15,29 @@ namespace PLC
 {
     public static class Utilities
     {
+
+        public static void Bubble(string myTitle, string myMessage)
+        {
+            TrayItemBubbleWindow bw = new TrayItemBubbleWindow
+            {
+                Title = myTitle,
+                //HyperLink = "https://billymosis.com",
+                //HyperText = "Mantab Bang",
+
+                Text = myMessage,
+                //Text2 = "",
+                IconType = IconType.Information,
+            };
+            bw.Closed += Bw_Closed;
+            Global.MyTray.ShowBubbleWindow(bw);
+        }
+
+        private static void Bw_Closed(object sender, TrayItemBubbleWindowClosedEventArgs e)
+        {
+            TrayItemBubbleWindow x = sender as TrayItemBubbleWindow;
+            x.Dispose();
+        }
+
         public static void ImportBlock()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;

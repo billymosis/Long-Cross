@@ -87,6 +87,7 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.XML" />
@@ -115,7 +116,7 @@
     <Compile Include="HecRAS.cs" />
     <Compile Include="Initialize.cs" />
     <Compile Include="Licensing\CheckLicense.cs" />
-    <Compile Include="Licensing\Counter.cs" />
+    <Compile Include="Licensing\TrialData.cs" />
     <Compile Include="NextFeature.cs" />
     <Compile Include="Plan.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

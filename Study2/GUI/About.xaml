@@ -12,7 +12,7 @@
             <TextBlock FontSize="12" Height="20"><Run Text="Licensed to"/></TextBlock>
             <TextBlock FontSize="12" Height="20"><Run Text="License Expiration"/></TextBlock>
             <TextBlock FontSize="12" Height="20"><Run Text="Trial Expiration"/></TextBlock>
-            <TextBlock FontSize="12" Height="20"><Run Text="Machi"/><Run Text="n"/><Run Text="e ID"/></TextBlock>
+            <TextBlock FontSize="12" Height="20" Text="Activation Code"/>
         </StackPanel>
         <StackPanel x:Name="Answer" Margin="147,96,109.6,89.4" Orientation="Vertical">
             <TextBlock x:Name="LicensedTo" FontSize="12" Height="20"><Run Text="Not Licensed"/></TextBlock>
@@ -20,7 +20,7 @@
             <TextBlock x:Name="TrialExpiration" FontSize="12" Height="20"><Run Text="0"/></TextBlock>
             <TextBox x:Name="MachineID" FontSize="12" Height="20" Background="Transparent" BorderThickness="0" >0</TextBox>
         </StackPanel>
-        <TextBlock Width="374" TextWrapping="Wrap" Margin="10,0,9.6,30.4" TextAlignment="Center" Height="40" HorizontalAlignment="Center" VerticalAlignment="Bottom"><Run Text="Visit "/><Hyperlink NavigateUri="http://www.billymosis.com/"><Run Text="billymosis.com"/></Hyperlink><Run Text=" for more information, bug reporting and new feature suggestion."/></TextBlock>
+        <TextBlock Width="374" TextWrapping="Wrap" Margin="10,0,9.6,30.4" TextAlignment="Center" Height="40" HorizontalAlignment="Center" VerticalAlignment="Bottom"><Run Text="Visit "/><Hyperlink x:Name="URL" Click="URL_Click" NavigateUri="https://www.billymosis.com/"><Run Text="billymosis.com"/></Hyperlink><Run Text=" for more information, bug reporting and new feature suggestion."/></TextBlock>
         <TextBlock Width="374" TextWrapping="Wrap" Margin="10,0,9.6,10.4" TextAlignment="Center" Height="20" HorizontalAlignment="Center" VerticalAlignment="Bottom">Copyright © 2020 Billy Studio. All Rights Reserved.</TextBlock>
     </Grid>
 </Window>

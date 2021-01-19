@@ -12,7 +12,7 @@ using System.Xml;
 namespace PLC.Licensing
 {
 
-    public class Counter
+    public class TrialData
     {
         public static byte[] MyIV = { 140, 212, 3, 14, 55, 76, 71, 88, 9, 10, 65, 172, 138, 149, 151, 178 };
 
@@ -24,14 +24,14 @@ namespace PLC.Licensing
             Config c = new Config(j);
             DateTime last = Convert.ToDateTime(c.LastUseDate);
             DateTime now = DateTime.UtcNow;
-            DateTime exp = Convert.ToDateTime(c.ExpiredDate);
-            DateTime InstallDate = exp.AddYears(-1);
+            DateTime exp = Global.Licensed ? Convert.ToDateTime(c.ExpiredDate) : DateTime.UtcNow.AddDays(1);
+            DateTime InstallDate = Global.Licensed ? exp.AddYears(-1) : exp.AddDays(-1);
             TimeSpan remaining = exp - now;
             TimeSpan usableday = exp - InstallDate;
 
             if (remaining.Days < 0)
             {
-                Console.WriteLine("Expired");
+                Utilities.Bubble("Expired","Your license has expired.");
             }
             else if (c.TimeTamper)
             {
@@ -42,21 +42,21 @@ namespace PLC.Licensing
                     c.LastUseDate = y.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture);
                     byte[] data = EncryptToJSON(c);
                     SaveSettingsInIsoStorage("Settings.dat", data);
-                    Console.WriteLine("Thank you for your cooperation. Licensing service is back to normal.");
+                    Utilities.Bubble("Clock Corrected","Thank you for your cooperation. Licensing service is back to normal.");
                     DateChecker();
                 }
                 else
                 {
-                    Console.WriteLine("Time violation detected, please change your date to correct date.");
-                    Console.WriteLine("Please set your system clock to the Internet Time: " + y.ToUniversalTime().Date.ToShortDateString());
+                    Utilities.Bubble("Warning","Time violation detected, please change your date to correct date.");
+                    Utilities.Bubble("Warning","Please set your system clock to the Internet Time: " + y.ToUniversalTime().Date.ToShortDateString());
                 }
             }
             else if (last.Date > now.Date || now < InstallDate)
             {
                 c.TimeTamper = true;
-                Console.WriteLine("Time violation detected, please change your date to correct date.");
+                Utilities.Bubble("Warning","Time violation detected, please change your date to correct date.");
                 DateTime y = GetNistTime().ToUniversalTime();
-                Console.WriteLine("Please set your system clock to the Internet Time: " + y.ToUniversalTime().Date.ToShortDateString());
+                Utilities.Bubble("Warning","Please set your system clock to the Internet Time: " + y.ToUniversalTime().Date.ToShortDateString());
                 byte[] data = EncryptToJSON(c);
                 SaveSettingsInIsoStorage("Settings.dat", data);
             }
@@ -86,7 +86,6 @@ namespace PLC.Licensing
                 c.FirstInstall = false;
                 byte[] data = EncryptToJSON(c);
                 SaveSettingsInIsoStorage("Settings.dat", data);
-                Console.WriteLine("In Range");
             }
         }
 
@@ -117,8 +116,8 @@ namespace PLC.Licensing
             }
             catch (SocketException SE)
             {
-                Console.WriteLine("Request Timeout, Please connect to the internet.");
-                Console.WriteLine(SE.Message);
+                Utilities.Bubble("Warning","Request Timeout, Please connect to the internet.");
+                Utilities.Bubble("Warning",SE.Message);
                 throw;
             }
         }
@@ -127,9 +126,7 @@ namespace PLC.Licensing
         {
             Dictionary<string, string> j = ReadJSON();
             Config c = new Config(j);
-            Console.WriteLine("awal :" + c.LicenseLimit);
             c.LicenseLimit = c.LicenseLimit - 10;
-            Console.WriteLine("menjadi :" + c.LicenseLimit);
             byte[] data = EncryptToJSON(c);
             SaveSettingsInIsoStorage("Settings.dat", data);
             DateChecker();
@@ -139,9 +136,7 @@ namespace PLC.Licensing
         {
             Dictionary<string, string> j = ReadJSON();
             Config c = new Config(j);
-            Console.WriteLine("awal :" + c.LicenseLimit);
             c.LicenseLimit = value;
-            Console.WriteLine("menjadi :" + c.LicenseLimit);
             byte[] data = EncryptToJSON(c);
             SaveSettingsInIsoStorage("Settings.dat", data);
             DateChecker();
@@ -151,17 +146,30 @@ namespace PLC.Licensing
         {
             const int LICENSE_YEAR_LENGTH = -1;
             string filename = "Settings.dat";
-            string LicensePath = @"E:\AutoCAD Project\EasyLicense-master\EasyLicense\DemoProject\bin\Debug\license.lic";
+            string LicensePath = @"license.lic";
 
             IsolatedStorageFile applicationStorageFileForUser = IsolatedStorageFile.GetUserStoreForAssembly();
-            bool FileExist = applicationStorageFileForUser.FileExists(filename);
+            bool SettingsFileExist = applicationStorageFileForUser.FileExists(filename);
+            bool LicenseExistandTrue = Global.Licensed && File.Exists(LicensePath);
 
-            XmlDocument myLicense = new XmlDocument();
-            myLicense.Load(LicensePath);
-            XmlNodeList x = myLicense.GetElementsByTagName("license");
-            string ExpirationDate = x[0].Attributes["expiration"].Value;
-            TimeSpan DayCounter = DateTime.UtcNow - Convert.ToDateTime(ExpirationDate).AddYears(LICENSE_YEAR_LENGTH);
-            if (FileExist)
+
+            string ExpirationDate;
+            TimeSpan DayCounter;
+            if (LicenseExistandTrue)
+            {
+                XmlDocument myLicense = new XmlDocument();
+                myLicense.Load(LicensePath);
+                XmlNodeList x = myLicense.GetElementsByTagName("license");
+                ExpirationDate = x[0].Attributes["expiration"].Value;
+                DayCounter = DateTime.UtcNow - Convert.ToDateTime(ExpirationDate).AddYears(LICENSE_YEAR_LENGTH);
+            }
+            else
+            {
+                ExpirationDate = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture);
+                DayCounter = DateTime.UtcNow - Convert.ToDateTime(ExpirationDate).AddDays(LICENSE_YEAR_LENGTH);
+            }
+
+            if (SettingsFileExist)
             {
                 DateChecker();
             }
@@ -173,7 +181,8 @@ namespace PLC.Licensing
                     LastUseDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture),
                     UsedDateCount = 0,
                     DayCounter = DayCounter.Days,
-                    FirstInstall = true,
+                    FirstInstall = SettingsFileExist ? false : true,
+                    Licensed = LicenseExistandTrue,
                 };
                 TimeSpan remaining = Convert.ToDateTime(coy.ExpiredDate) - Convert.ToDateTime(coy.LastUseDate);
                 coy.RemainingDay = remaining.Days;
@@ -182,39 +191,6 @@ namespace PLC.Licensing
                 DateChecker();
             }
 
-        }
-
-        public static void Main()
-        {
-            int i = int.Parse(Console.ReadLine());
-            switch (i)
-            {
-                case 1:
-                    {
-                        InitialWrite();
-                        break;
-                    }
-                case 2:
-                    {
-                        Console.WriteLine(string.Join(Environment.NewLine, ReadJSON()));
-                        break;
-                    }
-                case 3:
-                    {
-                        DateChecker();
-                        break;
-                    }
-                case 4:
-                    {
-                        DecreaseAndUpdateCounter();
-                        break;
-                    }
-                default:
-                    break;
-            }
-            Dictionary<string, string> j = ReadJSON();
-            Main();
-            Console.ReadLine();
         }
 
         public static byte[] ReadAllBytes(BinaryReader reader)
