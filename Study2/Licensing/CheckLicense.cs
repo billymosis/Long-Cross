@@ -18,7 +18,7 @@ namespace PLC.Licensing
         public string LicensedTo;
         public string LicenseExpiration;
         public string MachineID;
-        public bool License2 = false;
+        public bool License2 = true;
         public IDictionary<string, string> Attributes;
 
         public CheckLicense()

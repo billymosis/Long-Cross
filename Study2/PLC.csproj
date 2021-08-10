@@ -67,6 +67,18 @@
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'CE|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\CE\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DocumentationFile>bin\Debug\PLC.xml</DocumentationFile>
+    <WarningLevel>3</WarningLevel>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.1</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="AcCoreMgd, Version=23.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -108,6 +120,7 @@
     <Compile Include="Data.cs" />
     <Compile Include="DataKerusakan.cs" />
     <Compile Include="DataPlan.cs" />
+    <Compile Include="DrawTableKerusakan.cs" />
     <Compile Include="DrawTable.cs" />
     <Compile Include="Global.cs" />
     <Compile Include="GUI\About.xaml.cs">
@@ -116,6 +129,7 @@
     <Compile Include="HecRAS.cs" />
     <Compile Include="Initialize.cs" />
     <Compile Include="Licensing\CheckLicense.cs" />
+    <Compile Include="Licensing\Encryptor.cs" />
     <Compile Include="Licensing\TrialData.cs" />
     <Compile Include="NextFeature.cs" />
     <Compile Include="Plan.cs" />
@@ -130,6 +144,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="Test.cs" />
     <Compile Include="Utilites.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -188,16 +203,20 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EasyLicense.Lib\EasyLicense.Lib.csproj">
-      <Project>{3f080765-0af5-4083-92c4-93d194924bb3}</Project>
-      <Name>EasyLicense.Lib</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Page Include="GUI\About.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\AutoCADCodePack-master\AutoCADCommands\AutoCADCommands.R19.csproj">
+      <Project>{77b9f8fe-f75b-48c8-8249-6859e8d347e1}</Project>
+      <Name>AutoCADCommands.R19</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EasyLicense.Lib\EasyLicense.Lib.csproj">
+      <Project>{3f080765-0af5-4083-92c4-93d194924bb3}</Project>
+      <Name>EasyLicense.Lib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

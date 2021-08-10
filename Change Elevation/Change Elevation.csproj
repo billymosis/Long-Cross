@@ -1,18 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3F080765-0AF5-4083-92C4-93D194924BB3}</ProjectGuid>
+    <ProjectGuid>{EC0B6451-705C-4A9D-B1DC-D18F1E30E0C4}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>EasyLicense.Lib</RootNamespace>
-    <AssemblyName>EasyLicense.Lib</AssemblyName>
+    <RootNamespace>Change_Elevation</RootNamespace>
+    <AssemblyName>Change Elevation</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\src\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
+    <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -42,16 +41,23 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="AcCoreMgd">
+      <HintPath>C:\ObjectARX 2013\inc\AcCoreMgd.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="PresentationFramework" />
+    <Reference Include="AcDbMgd">
+      <HintPath>C:\ObjectARX 2013\inc\AcDbMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="AcMgd">
+      <HintPath>C:\ObjectARX 2013\inc\AcMgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Management" />
-    <Reference Include="System.Security" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -59,32 +65,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="License\Exception\LicenseWrongMachine.cs" />
-    <Compile Include="License\HardwareInfo.cs" />
-    <Compile Include="License\Validator\AbstractLicenseValidator.cs" />
-    <Compile Include="License\Exception\LicenseExpiredException.cs" />
-    <Compile Include="License\Exception\LicenseFileNotFoundException.cs" />
-    <Compile Include="License\LicenseGenerator.cs" />
-    <Compile Include="License\Exception\LicenseNotFoundException.cs" />
-    <Compile Include="License\LicenseType.cs" />
-    <Compile Include="License\Validator\LicenseValidator.cs" />
-    <Compile Include="License\Exception\RhinoLicensingException.cs" />
-    <Compile Include="License\Validator\StringLicenseValidator.cs" />
-    <Compile Include="License\Validator\TrailLicenseValidator.cs" />
-    <Compile Include="StringExtension.cs" />
-    <Compile Include="CryptHelper.cs" />
-    <Compile Include="CountManager.cs" />
+    <Compile Include="ChangeElevation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

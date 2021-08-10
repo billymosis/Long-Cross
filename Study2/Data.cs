@@ -60,7 +60,7 @@ namespace PLC
         public void ReadData(string p)
         {
             List<List<string>> Lines = new List<List<string>>();
-            using (StreamReader reader = new StreamReader(p))
+            using (StreamReader reader = new StreamReader(File.Open(p, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
             using (CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
                 csv.Configuration.HasHeaderRecord = false;

@@ -13,11 +13,14 @@ using System.Globalization;
 using System.IO;
 using static PLC.Utilities;
 
+using System.Linq;
+
 namespace PLC
 {
-
+    
     public class Command
     {
+        
         /// <summary>
         /// Switch Trial and Full Licensed Mode
         /// </summary>
@@ -207,52 +210,6 @@ namespace PLC
                 csv.WriteRecords(records);
             }
             WriteFile(hec.GEORAS, directoryFolder + @"\" + fileName + ".geo");
-        }
-
-
-        [CommandMethod("CrossDraw")]
-        public static void CrossDraw()
-        {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ")
-            {
-                Filter = "Cross File (*.csv;*.txt)|*.csv;*.txt"
-            };
-            string path = ed.GetFileNameForOpen(POFO).StringResult;
-            string s = path;
-            Stopwatch stopwatch = new Stopwatch();
-            Data d = new Data(s);
-            Cross x = new Cross(d);
-            ProgressMeter pm = new ProgressMeter();
-            pm.Start("Processing Cross");
-            pm.SetLimit(x.Count);
-            int limit = x.Count;
-            //limit = 8;
-            stopwatch.Start();
-            for (int i = 0; i < limit; i++)
-            {
-                x.Draw(d.CrossDataCollection[i]);
-                x.Place(d.CrossDataCollection[i], i);
-                pm.MeterProgress();
-            }
-
-            if (x.crossError.Split(',').Length != 0)
-            {
-                ed.WriteMessage($"\nTerdapat {x.crossError.Split(',').Length - 1} kesalahan data: {x.crossError.Remove(x.crossError.Length - 2)}" +
-    $"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
-            }
-            else
-            {
-                ed.WriteMessage($"\nProgress selesai dalam waktu {stopwatch.ElapsedMilliseconds} ms\n");
-            }
-
-            Application.SetSystemVariable("XCLIPFRAME", 0);
-            Application.SetSystemVariable("PDMODE", 3);
-            pm.Stop();
-            stopwatch.Stop();
-            pm.Dispose();
-
         }
 
         [CommandMethod("WR")]

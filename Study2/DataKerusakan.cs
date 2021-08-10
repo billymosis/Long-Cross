@@ -139,7 +139,7 @@ namespace PLC
                             const double TebalKotak = 7;
                             const double JarakKotak = 1.2;
                             const double TinggiText = 4;
-                            const bool PakaiHatch = true;
+                            const bool PakaiHatch = false;
                             double StartX;
                             double FinishX;
                             double StartY;
@@ -152,6 +152,7 @@ namespace PLC
                             {
                                 L.StartPoint = new Point3d(StartX, StartY, 0);
                                 L.EndPoint = new Point3d(FinishX, StartY, 0);
+                                L.ColorIndex = 55;
                                 btr.AppendEntity(L);
                             }
 
@@ -161,6 +162,7 @@ namespace PLC
                             {
                                 L.StartPoint = new Point3d(StartX, StartY - 1, 0);
                                 L.EndPoint = new Point3d(StartX, StartY + 1, 0);
+                                L.ColorIndex = 55;
                                 btr.AppendEntity(L);
                             }
 
@@ -169,6 +171,8 @@ namespace PLC
                             {
                                 tx.Position = new Point3d(StartX, StartY + 2, 0);
                                 tx.TextString = now.NamaPatok;
+                                tx.Height = 0.1;
+                                tx.ColorIndex = 1;
                                 btr.AppendEntity(tx);
                             }
 
@@ -212,8 +216,9 @@ namespace PLC
                                     {
                                         tx.Justify = AttachmentPoint.MiddleCenter;
                                         tx.AlignmentPoint = new Point3d((now.Awal[j] + now.Akhir[j]) / 2 + StartX, StartY + (JarakKotak + TebalKotak) / 2 * posisi, 0);
-                                        tx.TextString = now.Tipe[j];
+                                        tx.TextString = (Convert.ToChar(j+65).ToString());
                                         tx.Height = TinggiText;
+                                        tx.ColorIndex = 1;
                                         btr.AppendEntity(tx);
                                     }
 

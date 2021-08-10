@@ -8,13 +8,13 @@
              d:DesignHeight="300" d:DesignWidth="400">
     <Grid>
         <TextBlock Margin="10,10,9.6,215.4" FontSize="32">Canal CAD</TextBlock>
-        <StackPanel Margin="10,96,246.6,89.4" Orientation="Vertical">
+        <StackPanel Margin="10,73,246.6,112.4" Orientation="Vertical">
             <TextBlock FontSize="12" Height="20"><Run Text="Licensed to"/></TextBlock>
             <TextBlock FontSize="12" Height="20"><Run Text="License Expiration"/></TextBlock>
             <TextBlock FontSize="12" Height="20"><Run Text="Trial Expiration"/></TextBlock>
             <TextBlock FontSize="12" Height="20" Text="Activation Code"/>
         </StackPanel>
-        <StackPanel x:Name="Answer" Margin="147,96,109.6,89.4" Orientation="Vertical">
+        <StackPanel x:Name="Answer" Margin="147,73,109.6,112.4" Orientation="Vertical">
             <TextBlock x:Name="LicensedTo" FontSize="12" Height="20"><Run Text="Not Licensed"/></TextBlock>
             <TextBlock x:Name="LicenseExpiration" FontSize="12" Height="20"><Run Text="Not Licensed"/></TextBlock>
             <TextBlock x:Name="TrialExpiration" FontSize="12" Height="20"><Run Text="0"/></TextBlock>

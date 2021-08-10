@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 
 namespace PLC
@@ -251,23 +252,25 @@ namespace PLC
 
         public static DateTime GetNistTime()
         {
-            DateTime result = DateTime.Now;
+            DateTime result;
             try
             {
-                using (WebResponse response = WebRequest.Create("http://www.microsoft.com").GetResponse())
+                TcpClient client = new TcpClient("time.nist.gov", 13);
+                using (StreamReader streamReader = new StreamReader(client.GetStream()))
                 {
-                    return result = DateTime.ParseExact(response.Headers["date"], "ddd, dd MMM yyyy HH:mm:ss 'GMT'", CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.AssumeUniversal);
+                    string response = streamReader.ReadToEnd();
+                    string utcDateTimeString = response.Substring(7, 17);
+                    result = DateTime.ParseExact(utcDateTimeString, "yy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+                    return result;
                 }
             }
-            catch (WebException wex)
+            catch (SocketException SE)
             {
-                if (wex.Response != null)
-                {
-                    return result = DateTime.Now;
-                }
+                Utilities.Bubble("Warning", "Request Timeout, Please connect to the internet.\n Error Message: " + SE.Message);
+                throw;
             }
-            return result.AddYears(5);
         }
+
         public static string GetDllPath()
         {
             string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -307,6 +310,18 @@ namespace PLC
             {
                 L.StartPoint = Awal;
                 L.EndPoint = Akhir;
+                btr.AppendEntity(L);
+
+            }
+        }
+
+        public static void DrawLine(Point3d Awal, Point3d Akhir, BlockTableRecord btr, int WARNA)
+        {
+            using (Line L = new Line())
+            {
+                L.StartPoint = Awal;
+                L.EndPoint = Akhir;
+                L.ColorIndex = WARNA;
                 btr.AppendEntity(L);
 
             }
