@@ -113,26 +113,27 @@
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChangeElevation.cs" />
-    <Compile Include="Command.cs" />
-    <Compile Include="Cross.cs" />
-    <Compile Include="DataCross.cs" />
-    <Compile Include="Data.cs" />
-    <Compile Include="DataKerusakan.cs" />
-    <Compile Include="DataPlan.cs" />
-    <Compile Include="DrawTableKerusakan.cs" />
-    <Compile Include="DrawTable.cs" />
-    <Compile Include="Global.cs" />
-    <Compile Include="GUI\About.xaml.cs">
+    <Compile Include="src\lib\change_elevation\ChangeElevation.cs" />
+    <Compile Include="src\lib\Command.cs" />
+    <Compile Include="src\lib\cross\Cross.cs" />
+    <Compile Include="src\lib\data\DataCross.cs" />
+    <Compile Include="src\lib\data\Data.cs" />
+    <Compile Include="src\lib\data\DataKerusakan.cs" />
+    <Compile Include="src\lib\data\DataPlan.cs" />
+    <Compile Include="src\lib\data\Nodes.cs" />
+    <Compile Include="src\lib\table\DrawTableKerusakan.cs" />
+    <Compile Include="src\lib\table\DrawTable.cs" />
+    <Compile Include="src\lib\Global.cs" />
+    <Compile Include="src\view\About.xaml.cs">
       <DependentUpon>About.xaml</DependentUpon>
     </Compile>
-    <Compile Include="HecRAS.cs" />
-    <Compile Include="Initialize.cs" />
-    <Compile Include="Licensing\CheckLicense.cs" />
-    <Compile Include="Licensing\Encryptor.cs" />
-    <Compile Include="Licensing\TrialData.cs" />
-    <Compile Include="NextFeature.cs" />
-    <Compile Include="Plan.cs" />
+    <Compile Include="src\lib\hec_ras\HecRAS.cs" />
+    <Compile Include="src\lib\Initialize.cs" />
+    <Compile Include="src\lib\licensing\CheckLicense.cs" />
+    <Compile Include="src\lib\licensing\Encryptor.cs" />
+    <Compile Include="src\lib\licensing\TrialData.cs" />
+    <Compile Include="src\lib\NextFeature.cs" />
+    <Compile Include="src\lib\plan\Plan.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -144,8 +145,8 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Test.cs" />
-    <Compile Include="Utilites.cs" />
+    <Compile Include="src\lib\Test.cs" />
+    <Compile Include="src\lib\Utilites.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">
@@ -170,8 +171,8 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <None Include="!todo - English.md" />
-    <None Include="!todo.md" />
+    <None Include="docs\!todo - English.md" />
+    <None Include="docs\!todo.md" />
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
@@ -190,6 +191,9 @@
     <PackageReference Include="CsvHelper">
       <Version>19.0.0</Version>
     </PackageReference>
+    <PackageReference Include="morelinq">
+      <Version>3.3.2</Version>
+    </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>12.0.3</Version>
     </PackageReference>
@@ -198,12 +202,12 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="!todo.html">
+    <Content Include="docs\!todo.html">
       <DependentUpon>!todo.md</DependentUpon>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="GUI\About.xaml">
+    <Page Include="src\view\About.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

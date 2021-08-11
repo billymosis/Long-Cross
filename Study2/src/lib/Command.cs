@@ -21,6 +21,8 @@ namespace PLC
     public class Command
     {
         
+
+
         /// <summary>
         /// Switch Trial and Full Licensed Mode
         /// </summary>
@@ -168,22 +170,23 @@ namespace PLC
             x.DrawPolygon();
             for (int i = 0; i < d.TotalCrossNumber; i++)
             {
-                if (Global.Licensed)
-                {
-                    x.DrawPlanCross(i);
-                }
-                else
-                {
-                    if (Global.counter.value > 0)
-                    {
-                        x.DrawPlanCross(i);
-                        Global.AddCounter(-1);
-                    }
-                    else
-                    {
-                        Utilities.Bubble("Limit",$"You have reached your limit, trial will be reseted tomorrow at {DateTime.Now.AddDays(1).ToShortDateString()}.");
-                    }
-                }
+                //if (Global.Licensed)
+                //{
+                //    x.DrawPlanCross(i);
+                //}
+                //else
+                //{
+                //    if (Global.counter.value > 0)
+                //    {
+                //        x.DrawPlanCross(i);
+                //        Global.AddCounter(-1);
+                //    }
+                //    else
+                //    {
+                //        Utilities.Bubble("Limit",$"You have reached your limit, trial will be reseted tomorrow at {DateTime.Now.AddDays(1).ToShortDateString()}.");
+                //    }
+                //}
+                x.DrawPlanCross(i);
 
             }
 
