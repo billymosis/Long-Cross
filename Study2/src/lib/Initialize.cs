@@ -46,6 +46,7 @@ namespace PLC
 
             ImportBlock();
             LoadLinetype();
+            LoadStyle();
         }
 
         //private void VetoCommandIfInList(object sender, DocumentLockModeChangedEventArgs e)

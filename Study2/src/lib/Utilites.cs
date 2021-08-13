@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -16,6 +17,82 @@ namespace PLC
 {
     public static class Utilities
     {
+
+        //public static DBText Text(string text, Point3d position)
+        //{
+
+        //    var dbText = new DBText
+        //    {
+        //        TextString = text,
+        //        Position = position,
+        //        Rotation = rotation,
+        //        TextStyleId = textStyleId,
+        //        Height = height,
+        //        Oblique = style.ObliquingAngle,
+        //        WidthFactor = style.XScale
+        //    };
+
+
+        //    return dbText;
+        //}
+        public static void Print(string msg)
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Doc.Editor;
+            ed.WriteMessage(msg);
+        }
+
+        public static void Alert(string msg)
+        {
+            Document Doc = Application.DocumentManager.MdiActiveDocument;
+            Application.ShowAlertDialog(msg);
+        }
+
+        public static ObjectId InsertBlock(string name, Point3d basePoint)
+        {
+            ObjectId id;
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
+                {
+                    using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
+                    {
+
+                        using (BlockReference brf = new BlockReference(basePoint, bt[name]))
+                        {
+                            id = btr.AppendEntity(brf);
+                        }
+
+                    }
+                }
+                tr.Commit();
+            }
+            return id;
+        }
+
+        public static ObjectId[] AddToBlock(this IEnumerable<Entity> entities, string blockName, Point3d origin = new Point3d())
+        {
+            List<ObjectId> ids = new List<ObjectId>();
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
+                {
+                    using (BlockTableRecord btr = new BlockTableRecord())
+                    {
+                        btr.Name = blockName;
+                        foreach (Entity item in entities)
+                        {
+                            ObjectId id = btr.AppendEntity(item);
+                            ids.Add(id);
+                        }
+                        btr.Origin = origin;
+                        bt.Add(btr);
+                    }
+                }
+                tr.Commit();
+                return ids.ToArray();
+            }
+        }
 
         public static void Bubble(string myTitle, string myMessage)
         {
@@ -64,6 +141,54 @@ namespace PLC
                         }
                     }
                 }
+            }
+        }
+
+        public static void LoadStyle()
+        {
+            Document newDoc = Application.DocumentManager.MdiActiveDocument;
+
+            Dictionary<string, double> styleList = new Dictionary<string, double>()
+            {
+               {"L40", 0.102},
+               {"L50", 0.127},
+               {"L60", 0.152 },
+               {"L80", 0.203 },
+               {"L100", 0.254 },
+               {"L120", 0.305 },
+               {"L140", 0.356 },
+               {"L175", 0.445 },
+               {"L200", 0.508 },
+               {"L240", 0.610 },
+               {"L290", 0.737 },
+               {"L350", 0.889 },
+            }
+            ;
+
+            using (Transaction newTransaction = newDoc.Database.TransactionManager.StartTransaction())
+            {
+                BlockTable newBlockTable;
+                newBlockTable = newTransaction.GetObject(newDoc.Database.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord newBlockTableRecord;
+                newBlockTableRecord = (BlockTableRecord)newTransaction.GetObject(newBlockTable[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                TextStyleTable newTextStyleTable = newTransaction.GetObject(newDoc.Database.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
+
+                foreach (KeyValuePair<string, double> entry in styleList)
+                {
+                    if (!newTextStyleTable.Has(entry.Key))  //The TextStyle is currently not in the database
+                    {
+                        newTextStyleTable.UpgradeOpen();
+                        TextStyleTableRecord newTextStyleTableRecord = new TextStyleTableRecord
+                        {
+                            FileName = "simplex.shx",
+                            Name = entry.Key,
+                            TextSize = entry.Value
+                        };
+                        newTextStyleTable.Add(newTextStyleTableRecord);
+                        newTransaction.AddNewlyCreatedDBObject(newTextStyleTableRecord, true);
+                    }
+                }
+                newTransaction.Commit();
             }
         }
         public static void LoadLinetype()

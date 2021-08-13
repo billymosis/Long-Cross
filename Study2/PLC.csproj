@@ -120,7 +120,9 @@
     <Compile Include="src\lib\data\Data.cs" />
     <Compile Include="src\lib\data\DataKerusakan.cs" />
     <Compile Include="src\lib\data\DataPlan.cs" />
-    <Compile Include="src\lib\data\Nodes.cs" />
+    <Compile Include="src\lib\data\models\Canal.cs" />
+    <Compile Include="src\lib\data\models\Node.cs" />
+    <Compile Include="src\lib\data\models\Nodes.cs" />
     <Compile Include="src\lib\table\DrawTableKerusakan.cs" />
     <Compile Include="src\lib\table\DrawTable.cs" />
     <Compile Include="src\lib\Global.cs" />

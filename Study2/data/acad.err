@@ -1,6 +1,6 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0010 Exception at 30B64747h
+FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at 322FAE7Bh
 
-08/12/2021 at 01:31:33.000  Drawing: Drawing1.dwg
+08/13/2021 at 10:00:04.000  Drawing: Drawing1.dwg
 -------------
