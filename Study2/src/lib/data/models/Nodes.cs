@@ -41,6 +41,7 @@ namespace PLC
         public Point3dCollection NodePoint = new Point3dCollection();
         public Point3dCollection FlatNodePoint = new Point3dCollection();
         public List<Segments> segments = new List<Segments>();
+        public bool ValidCross = false;
         public enum NodesEnum
         {
             Patok,
@@ -53,19 +54,24 @@ namespace PLC
             Normal,
             Lining,
         }
-        public struct Segments
+        public class Segments
         {
-            public Entity Lines;
+            public Line Lines;
             public int Section;
             public SectionType sectionTypes;
+            public Node[] nodes;
 
-            public Segments(Entity lines, int section, SectionType sectionTypes)
+            public Segments(Line lines, int section, SectionType sectionTypes, Node[] nodes)
             {
+                this.nodes = nodes;
                 Lines = lines;
                 Section = section;
                 this.sectionTypes = sectionTypes;
             }
         }
+
+
+
         public Nodes(double x_base, double y_base, double z_base, LinkedList<Node> _nodes, string _patok)
         {
             if (_nodes.Count == 1)
@@ -75,7 +81,43 @@ namespace PLC
             else
             {
                 NodesType = NodesEnum.Cross;
+                List<double> Distances = new List<double>();
+                foreach (Node item in _nodes)
+                {
+                    Distances.Add(item.Distance);
+                }
+                ValidCross = Distances.IsOrdered();
+                //foreach (Node item in _nodes)
+                //{
+
+                //    if (_nodes.Find(item).Next != null)
+                //    {
+                //        Node prev = _nodes.Find(item).Next.Previous.Value;
+                //        if (item.Distance >= prev.Distance)
+                //        {
+                //            ValidCross = true;
+                //        }
+                //        else
+                //        {
+                //            break;
+                //        }
+                //    }
+                //    else if (_nodes.Find(item).Next != null && _nodes.Find(item).Previous != null)
+                //    {
+                //        Node next = _nodes.Find(item).Next.Value;
+                //        Node prev = _nodes.Find(item).Next.Previous.Value;
+                //        if (item.Distance >= prev.Distance && item.Distance <= next.Distance)
+                //        {
+                //            ValidCross = true;
+                //        }
+                //        else
+                //        {
+                //            break;
+                //        }
+                //    }
+                //}
             }
+
 
             X_BASE = x_base;
             Y_BASE = y_base;
@@ -124,9 +166,9 @@ namespace PLC
                             {
                                 types = SectionType.Normal;
                             }
-                            segments.Add(new Segments(line, counter, types));
+                            segments.Add(new Segments(line, counter, types, new Node[] { current, currentNodes.Next.Value }));
                         }
-
+                        counter++;
                     }
                     break;
                 default:

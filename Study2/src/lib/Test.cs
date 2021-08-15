@@ -5,6 +5,9 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
 using CsvHelper;
+using Dreambuild;
+using Dreambuild.AutoCAD;
+using Dreambuild.AutoCAD.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,9 +15,6 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Dreambuild;
-using Dreambuild.AutoCAD;
-using Dreambuild.AutoCAD.Internal;
 
 namespace PLC
 {
@@ -28,17 +28,17 @@ namespace PLC
             Editor ed = doc.Editor;
 
             // First Polyline
-            var pl1 = NoDraw.Rectang(new Point3d(0, 0, 0), new Point3d(30, 30, 0));
-            var pl2 = NoDraw.Line(new Point3d(-10, 10, 0), new Point3d(15, 10, 0));
-            
+            Polyline pl1 = NoDraw.Rectang(new Point3d(0, 0, 0), new Point3d(30, 30, 0));
+            Line pl2 = NoDraw.Line(new Point3d(-10, 10, 0), new Point3d(15, 10, 0));
+
             // Intersection Points Collection 
             Point3dCollection intPoints = new Point3dCollection();
             pl1.IntersectWith(pl2, Intersect.OnBothOperands, intPoints, IntPtr.Zero, IntPtr.Zero);
-            var x = pl2.GetSplitCurves(intPoints);
+            DBObjectCollection x = pl2.GetSplitCurves(intPoints);
             ed.WriteMessage("x: " + x.Count);
             foreach (Line item in x)
             {
-                var y = item.StartPoint;
+                Point3d y = item.StartPoint;
                 ed.WriteMessage("min:" + y.ToString() + "\n");
                 item.AddToCurrentSpace();
             }
@@ -59,7 +59,7 @@ namespace PLC
         [CommandMethod("ViewGlobalDict")]
         public static void ViewGlobalDict()
         {
-            var dv = new DictionaryViewer(
+            DictionaryViewer dv = new DictionaryViewer(
                 CustomDictionary.GetDictionaryNames,
                 CustomDictionary.GetEntryNames,
                 CustomDictionary.GetValue,
@@ -74,12 +74,12 @@ namespace PLC
         [CommandMethod("ViewObjectDict")]
         public static void ViewObjectDict()
         {
-            var id = Interaction.GetEntity("\nSelect entity");
+            ObjectId id = Interaction.GetEntity("\nSelect entity");
             if (id == ObjectId.Null)
             {
                 return;
             }
-            var dv = new DictionaryViewer(  // Currying
+            DictionaryViewer dv = new DictionaryViewer(  // Currying
                 () => CustomObjectDictionary.GetDictionaryNames(id),
                 dict => CustomObjectDictionary.GetEntryNames(id, dict),
                 (dict, key) => CustomObjectDictionary.GetValue(id, dict, key),
@@ -94,7 +94,7 @@ namespace PLC
         [CommandMethod("PolyClean0", CommandFlags.UsePickSet)]
         public static void PolyClean0()
         {
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
             int n = 0;
             ids.QForEach<Polyline>(poly =>
             {
@@ -113,7 +113,7 @@ namespace PLC
         [CommandMethod("PolyClean", CommandFlags.UsePickSet)]
         public static void PolyClean()
         {
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
             int m = 0;
             int n = 0;
             ids.QForEach<Polyline>(poly =>
@@ -143,7 +143,7 @@ namespace PLC
             }
             _polyClean2Epsilon = epsilon;
 
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
             int m = 0;
             int n = 0;
             ids.QForEach<Polyline>(poly =>
@@ -171,12 +171,12 @@ namespace PLC
             }
             int n = (int)value;
 
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
-            var entsToAdd = new List<Polyline>();
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            List<Polyline> entsToAdd = new List<Polyline>();
             ids.QForEach<Polyline>(poly =>
             {
-                var pts = poly.GetPolylineFitPoints(n);
-                var poly1 = NoDraw.Pline(pts);
+                IEnumerable<Point3d> pts = poly.GetPolylineFitPoints(n);
+                Polyline poly1 = NoDraw.Pline(pts);
                 poly1.Layer = poly.Layer;
                 try
                 {
@@ -211,7 +211,7 @@ namespace PLC
             }
             Algorithms.Direction dir = (Algorithms.Direction)n;
 
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
             int m = 0;
             ids.QForEach<Polyline>(poly =>
             {
@@ -230,7 +230,7 @@ namespace PLC
         public static void PolyClean5()
         {
             Interaction.WriteLine("Not implemented yet");
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
             ids.QForEach<Polyline>(poly =>
             {
                 Algorithms.PolyClean_RemoveColinearPoints(poly);
@@ -243,32 +243,32 @@ namespace PLC
         [CommandMethod("PolySplit", CommandFlags.UsePickSet)]
         public static void PolySplit()
         {
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
-            var newPolys = new List<Polyline>();
-            var pm = new ProgressMeter();
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            List<Polyline> newPolys = new List<Polyline>();
+            ProgressMeter pm = new ProgressMeter();
             pm.Start("Processing...");
             pm.SetLimit(ids.Length);
             ids.QOpenForWrite<Polyline>(list =>
             {
-                foreach (var poly in list)
+                foreach (Polyline poly in list)
                 {
-                    var intersectPoints = new Point3dCollection();
-                    foreach (var poly1 in list)
+                    Point3dCollection intersectPoints = new Point3dCollection();
+                    foreach (Polyline poly1 in list)
                     {
                         if (poly1 != poly)
                         {
                             poly.IntersectWith(poly1, Intersect.OnBothOperands, intersectPoints, IntPtr.Zero, IntPtr.Zero);
                         }
                     }
-                    var ipParams = intersectPoints
+                    double[] ipParams = intersectPoints
                         .Cast<Point3d>()
                         .Select(ip => poly.GetParamAtPointX(ip))
                         .OrderBy(param => param)
                         .ToArray();
                     if (intersectPoints.Count > 0)
                     {
-                        var curves = poly.GetSplitCurves(new DoubleCollection(ipParams));
-                        foreach (var curve in curves)
+                        DBObjectCollection curves = poly.GetSplitCurves(new DoubleCollection(ipParams));
+                        foreach (object curve in curves)
                         {
                             newPolys.Add(curve as Polyline);
                         }
@@ -304,34 +304,34 @@ namespace PLC
             }
             _polyTrimExtendEpsilon = epsilon;
 
-            var visibleLayers = DbHelper
+            List<string> visibleLayers = DbHelper
                 .GetAllLayerIds()
                 .QOpenForRead<LayerTableRecord>()
                 .Where(layer => !layer.IsHidden && !layer.IsFrozen && !layer.IsOff)
                 .Select(layer => layer.Name)
                 .ToList();
 
-            var ids = Interaction
+            ObjectId[] ids = Interaction
                 .GetSelection("\nSelect polyline", "LWPOLYLINE")
                 .QWhere(pline => visibleLayers.Contains(pline.Layer) && pline.Visible)
                 .ToArray(); // newly 20130729
 
-            var pm = new ProgressMeter();
+            ProgressMeter pm = new ProgressMeter();
             pm.Start("Processing...");
             pm.SetLimit(ids.Length);
             ids.QOpenForWrite<Polyline>(list =>
             {
-                foreach (var poly in list)
+                foreach (Polyline poly in list)
                 {
                     int[] indices = { 0, poly.NumberOfVertices - 1 };
                     foreach (int index in indices)
                     {
-                        var end = poly.GetPoint3dAt(index);
-                        foreach (var poly1 in list)
+                        Point3d end = poly.GetPoint3dAt(index);
+                        foreach (Polyline poly1 in list)
                         {
                             if (poly1 != poly)
                             {
-                                var closest = poly1.GetClosestPointTo(end, false);
+                                Point3d closest = poly1.GetClosestPointTo(end, false);
                                 double dist = closest.DistanceTo(end);
                                 double dist1 = poly1.StartPoint.DistanceTo(end);
                                 double dist2 = poly1.EndPoint.DistanceTo(end);
@@ -367,7 +367,7 @@ namespace PLC
         [CommandMethod("SaveSelection", CommandFlags.UsePickSet)]
         public static void SaveSelection()
         {
-            var ids = Interaction.GetPickSet();
+            ObjectId[] ids = Interaction.GetPickSet();
             if (ids.Length == 0)
             {
                 Interaction.WriteLine("No entity selected.");
@@ -383,7 +383,7 @@ namespace PLC
                 Interaction.WriteLine("Selection with the same name already exists.");
                 return;
             }
-            var handles = ids.QSelect(entity => entity.Handle.Value.ToString()).ToArray();
+            string[] handles = ids.QSelect(entity => entity.Handle.Value.ToString()).ToArray();
             string dictValue = string.Join("|", handles);
             CustomDictionary.SetValue("Selections", name, dictValue);
         }
@@ -400,11 +400,11 @@ namespace PLC
                 return;
             }
             string dictValue = CustomDictionary.GetValue("Selections", name);
-            var handles = dictValue.Split('|').Select(value => new Handle(Convert.ToInt64(value))).ToList();
-            var ids = new List<ObjectId>();
+            List<Handle> handles = dictValue.Split('|').Select(value => new Handle(Convert.ToInt64(value))).ToList();
+            List<ObjectId> ids = new List<ObjectId>();
             handles.ForEach(value =>
             {
-                var id = ObjectId.Null;
+                ObjectId id = ObjectId.Null;
                 if (HostApplicationServices.WorkingDatabase.TryGetObjectId(value, out id))
                 {
                     ids.Add(id);
@@ -419,10 +419,10 @@ namespace PLC
         [CommandMethod("MT2DT", CommandFlags.UsePickSet)]
         public static void MT2DT() // newly 20130815
         {
-            var ids = Interaction.GetSelection("\nSelect MText", "MTEXT");
-            var mts = ids.QOpenForRead<MText>().Select(mt =>
+            ObjectId[] ids = Interaction.GetSelection("\nSelect MText", "MTEXT");
+            DBText[] mts = ids.QOpenForRead<MText>().Select(mt =>
             {
-                var dt = NoDraw.Text(mt.Text, mt.TextHeight, mt.Location, mt.Rotation, false, mt.TextStyleName);
+                DBText dt = NoDraw.Text(mt.Text, mt.TextHeight, mt.Location, mt.Rotation, false, mt.TextStyleName);
                 dt.Layer = mt.Layer;
                 return dt;
             }).ToArray();
@@ -436,10 +436,10 @@ namespace PLC
         [CommandMethod("DT2MT", CommandFlags.UsePickSet)]
         public static void DT2MT() // newly 20130815
         {
-            var ids = Interaction.GetSelection("\nSelect Text", "TEXT");
-            var dts = ids.QOpenForRead<DBText>().Select(dt =>
+            ObjectId[] ids = Interaction.GetSelection("\nSelect Text", "TEXT");
+            MText[] dts = ids.QOpenForRead<DBText>().Select(dt =>
             {
-                var mt = NoDraw.MText(dt.TextString, dt.Height, dt.Position, dt.Rotation, false);
+                MText mt = NoDraw.MText(dt.TextString, dt.Height, dt.Position, dt.Rotation, false);
                 mt.Layer = dt.Layer;
                 return mt;
             }).ToArray();
@@ -453,9 +453,9 @@ namespace PLC
         [CommandMethod("ShowExtents", CommandFlags.UsePickSet)]
         public static void ShowExtents() // newly 20130815
         {
-            var ids = Interaction.GetSelection("\nSelect entity");
-            var extents = ids.GetExtents();
-            var rectId = Draw.Rectang(extents.MinPoint, extents.MaxPoint);
+            ObjectId[] ids = Interaction.GetSelection("\nSelect entity");
+            Extents3d extents = ids.GetExtents();
+            ObjectId rectId = Draw.Rectang(extents.MinPoint, extents.MaxPoint);
             Interaction.GetString("\nPress ENTER to exit...");
             rectId.QOpenForWrite(rect => rect.Erase());
         }
@@ -466,7 +466,7 @@ namespace PLC
         [CommandMethod("ClosePolyline", CommandFlags.UsePickSet)]
         public static void ClosePolyline()
         {
-            var ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect polyline", "LWPOLYLINE");
             if (ids.Length == 0)
             {
                 return;
@@ -497,11 +497,11 @@ namespace PLC
         [CommandMethod("DetectSelfIntersection")]
         public static void DetectSelfIntersection() // mod 20130202
         {
-            var ids = QuickSelection.SelectAll("LWPOLYLINE").ToArray();
-            var meter = new ProgressMeter();
+            ObjectId[] ids = QuickSelection.SelectAll("LWPOLYLINE").ToArray();
+            ProgressMeter meter = new ProgressMeter();
             meter.Start("Detecting...");
             meter.SetLimit(ids.Length);
-            var results = ids.QWhere(pline =>
+            List<ObjectId> results = ids.QWhere(pline =>
             {
                 bool result = (pline as Polyline).IsSelfIntersecting();
                 meter.MeterProgress();
@@ -526,15 +526,15 @@ namespace PLC
         [CommandMethod("ShowObject")]
         public static void ShowObject()
         {
-            var ids = QuickSelection.SelectAll().ToArray();
+            ObjectId[] ids = QuickSelection.SelectAll().ToArray();
             double handle1 = Interaction.GetValue("Handle of entity");
             if (double.IsNaN(handle1))
             {
                 return;
             }
             long handle2 = Convert.ToInt64(handle1);
-            var id = HostApplicationServices.WorkingDatabase.GetObjectId(false, new Handle(handle2), 0);
-            var col = new ObjectId[] { id };
+            ObjectId id = HostApplicationServices.WorkingDatabase.GetObjectId(false, new Handle(handle2), 0);
+            ObjectId[] col = new ObjectId[] { id };
             Interaction.HighlightObjects(col);
             Interaction.ZoomObjects(col);
         }
@@ -545,18 +545,18 @@ namespace PLC
         [CommandMethod("PolyLanding")]
         public static void PolyLanding()
         {
-            var ids = QuickSelection.SelectAll("*LINE,ARC").ToArray();
-            var landingLineIds = new List<ObjectId>();
+            ObjectId[] ids = QuickSelection.SelectAll("*LINE,ARC").ToArray();
+            List<ObjectId> landingLineIds = new List<ObjectId>();
             while (true)
             {
-                var p = Interaction.GetPoint("\nSpecify a point");
+                Point3d p = Interaction.GetPoint("\nSpecify a point");
                 if (p.IsNull())
                 {
                     break;
                 }
-                var landings = ids.QSelect(entity => (entity as Curve).GetClosestPointTo(p, false)).ToArray();
+                Point3d[] landings = ids.QSelect(entity => (entity as Curve).GetClosestPointTo(p, false)).ToArray();
                 double minDist = landings.Min(point => point.DistanceTo(p));
-                var landing = landings.First(point => point.DistanceTo(p) == minDist);
+                Point3d landing = landings.First(point => point.DistanceTo(p) == minDist);
                 Interaction.WriteLine("Shortest landing distance of point ({0:0.00},{1:0.00}) is {2:0.00}.", p.X, p.Y, minDist);
                 landingLineIds.Add(Draw.Line(p, landing));
             }
@@ -569,17 +569,17 @@ namespace PLC
         [CommandMethod("PolylineInfo")]
         public static void PolylineInfo() // mod by WY 20130202
         {
-            var id = Interaction.GetEntity("\nSpecify a polyline", typeof(Polyline));
+            ObjectId id = Interaction.GetEntity("\nSpecify a polyline", typeof(Polyline));
             if (id == ObjectId.Null)
             {
                 return;
             }
-            var poly = id.QOpenForRead<Polyline>();
+            Polyline poly = id.QOpenForRead<Polyline>();
             for (int i = 0; i <= poly.EndParam; i++)
             {
                 Interaction.WriteLine("[Point {0}] coord: {1}; bulge: {2}", i, poly.GetPointAtParameter(i), poly.GetBulgeAt(i));
             }
-            var txtIds = new List<ObjectId>();
+            List<ObjectId> txtIds = new List<ObjectId>();
             double height = poly.GeometricExtents.MaxPoint.DistanceTo(poly.GeometricExtents.MinPoint) / 50.0;
             for (int i = 0; i < poly.NumberOfVertices; i++)
             {
@@ -595,14 +595,14 @@ namespace PLC
         [CommandMethod("SelectByLayer")]
         public static void SelectByLayer()
         {
-            var availableLayerNames = DbHelper.GetAllLayerNames();
-            var selectedLayerNames = Gui.GetChoices("Specify layers", availableLayerNames);
+            string[] availableLayerNames = DbHelper.GetAllLayerNames();
+            string[] selectedLayerNames = Gui.GetChoices("Specify layers", availableLayerNames);
             if (selectedLayerNames.Length < 1)
             {
                 return;
             }
 
-            var ids = QuickSelection
+            ObjectId[] ids = QuickSelection
                 .SelectAll(FilterList.Create().Layer(selectedLayerNames))
                 .ToArray();
 
@@ -635,7 +635,7 @@ namespace PLC
             }
             else
             {
-                var layers = DbHelper.GetAllLayerNames().Where(layer => !layer.Contains("_Label")).ToArray();
+                string[] layers = DbHelper.GetAllLayerNames().Where(layer => !layer.Contains("_Label")).ToArray();
                 string layerName = Gui.GetChoice("Select a layer", layers);
                 ids = QuickSelection
                     .SelectAll(FilterList.Create().Layer(layerName))
@@ -643,14 +643,14 @@ namespace PLC
 
                 DbHelper.GetLayerId($"{layerName}_Label");
             }
-            var texts = new List<MText>();
+            List<MText> texts = new List<MText>();
             ids.QForEach<Entity>(entity =>
             {
                 string layerName = entity.Layer;
                 if (!layerName.Contains("_Label"))
                 {
-                    var center = entity.GetCenter();
-                    var text = NoDraw.MText(layerName, height, center, 0, true);
+                    Point3d center = entity.GetCenter();
+                    MText text = NoDraw.MText(layerName, height, center, 0, true);
                     text.Layer = $"{layerName}_Label";
                     texts.Add(text);
                 }
@@ -664,7 +664,7 @@ namespace PLC
         [CommandMethod("InspectObject")]
         public static void InspectObject()
         {
-            var id = Interaction.GetEntity("\nSelect objects");
+            ObjectId id = Interaction.GetEntity("\nSelect objects");
             if (id.IsNull)
             {
                 return;
@@ -691,7 +691,7 @@ namespace PLC
         [CommandMethod("TestBlock")]
         public void TestBlock()
         {
-            var bId = Draw.Block(QuickSelection.SelectAll(), "test");
+            ObjectId bId = Draw.Block(QuickSelection.SelectAll(), "test");
             // TODO: complete this test.
         }
 
@@ -702,7 +702,7 @@ namespace PLC
             CustomDictionary.SetValue("dict1", "B", "orange");
             CustomDictionary.SetValue("dict1", "A", "banana");
             CustomDictionary.SetValue("dict2", "A", "peach");
-            foreach (var dict in CustomDictionary.GetDictionaryNames())
+            foreach (string dict in CustomDictionary.GetDictionaryNames())
             {
                 Interaction.WriteLine(dict);
             }
@@ -712,9 +712,9 @@ namespace PLC
         [CommandMethod("TestDimension")]
         public void TestDimension()
         {
-            var a = Interaction.GetPoint("\nPoint 1");
-            var b = Interaction.GetPoint("\nPoint 2");
-            var c = Interaction.GetPoint("\nPoint of label");
+            Point3d a = Interaction.GetPoint("\nPoint 1");
+            Point3d b = Interaction.GetPoint("\nPoint 2");
+            Point3d c = Interaction.GetPoint("\nPoint of label");
             Draw.Dimlin(a, b, c);
         }
 
@@ -740,24 +740,24 @@ namespace PLC
         [CommandMethod("TestWipe")]
         public void TestWipe()
         {
-            var id = Interaction.GetEntity("\nEntity");
+            ObjectId id = Interaction.GetEntity("\nEntity");
             Draw.Wipeout(id);
         }
 
         [CommandMethod("TestRegion")]
         public void TestRegion()
         {
-            var id = Interaction.GetEntity("\nEntity");
+            ObjectId id = Interaction.GetEntity("\nEntity");
             Draw.Region(id);
-            var point = Interaction.GetPoint("\nPick one point");
+            Point3d point = Interaction.GetPoint("\nPick one point");
             Draw.Boundary(point, BoundaryType.Region);
         }
 
         [CommandMethod("TestOffset")]
         public void TestOffset()
         {
-            var id = Interaction.GetEntity("\nPolyline");
-            var poly = id.QOpenForRead<Polyline>();
+            ObjectId id = Interaction.GetEntity("\nPolyline");
+            Polyline poly = id.QOpenForRead<Polyline>();
             double value = Interaction.GetValue("\nOffset");
             poly.OffsetPoly(Enumerable.Range(0, poly.NumberOfVertices).Select(index => value).ToArray()).AddToCurrentSpace();
         }
@@ -765,31 +765,31 @@ namespace PLC
         [CommandMethod("TestSelection")]
         public void TestSelection()
         {
-            var point = Interaction.GetPoint("\nPoint");
+            Point3d point = Interaction.GetPoint("\nPoint");
             double value = Interaction.GetDistance("\nSize");
-            var size = new Vector3d(value, value, 0);
-            var ids = Interaction.GetWindowSelection(point - size, point + size);
+            Vector3d size = new Vector3d(value, value, 0);
+            ObjectId[] ids = Interaction.GetWindowSelection(point - size, point + size);
             Interaction.WriteLine("{0} entities selected.", ids.Count());
         }
 
         [CommandMethod("TestGraph")]
         public void TestGraph()
         {
-            var option = new GraphOption { xDelta = 20, yDelta = 0.5, yRatio = 0.5, SampleCount = 500 };
-            var graphPlotter = new GraphPlotter(option);
+            GraphOption option = new GraphOption { xDelta = 20, yDelta = 0.5, yRatio = 0.5, SampleCount = 500 };
+            GraphPlotter graphPlotter = new GraphPlotter(option);
             graphPlotter.Plot(Math.Sin, new Interv(5, 102));
             graphPlotter.Plot(x => Math.Cos(x) + 1, new Interv(10, 90), 3);
-            var graph = graphPlotter.GetGraphBlock();
-            var blockReference = new BlockReference(Point3d.Origin, graph);
-            var first = Interaction.GetPoint("\nSpecify extent point 1");
+            ObjectId graph = graphPlotter.GetGraphBlock();
+            BlockReference blockReference = new BlockReference(Point3d.Origin, graph);
+            Point3d first = Interaction.GetPoint("\nSpecify extent point 1");
             Interaction.InsertScalingEntity(blockReference, first, "\nSpecify extent point 2");
         }
 
         [CommandMethod("TestJigDrag")]
         public void TestJigDrag()
         {
-            var circle = new Circle(new Point3d(), Vector3d.ZAxis, 10.0);
-            var promptResult = Interaction.StartDrag("\nCenter:", result =>
+            Circle circle = new Circle(new Point3d(), Vector3d.ZAxis, 10.0);
+            PromptResult promptResult = Interaction.StartDrag("\nCenter:", result =>
             {
                 circle.Center = result.Value;
                 return circle;
@@ -812,7 +812,7 @@ namespace PLC
         [CommandMethod("TestQOpen")]
         public void TestQOpen()
         {
-            var ids = QuickSelection.SelectAll("LWPOLYLINE").QWhere(pline => pline.GetCode() == "parcel").ToArray();
+            ObjectId[] ids = QuickSelection.SelectAll("LWPOLYLINE").QWhere(pline => pline.GetCode() == "parcel").ToArray();
             ids.QForEach<Polyline>(poly =>
             {
                 poly.ConstantWidth = 2;
@@ -823,25 +823,25 @@ namespace PLC
         [CommandMethod("TestSetLayer")]
         public void TestSetLayer()
         {
-            var lineId = Draw.Line(Point3d.Origin, Point3d.Origin + Vector3d.XAxis);
+            ObjectId lineId = Draw.Line(Point3d.Origin, Point3d.Origin + Vector3d.XAxis);
             lineId.SetLayer("aaa");
         }
 
         [CommandMethod("TestGroup")]
         public void TestGroup()
         {
-            var ids = Interaction.GetSelection("\nSelect entities");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect entities");
             ids.Group();
-            var groupDict = HostApplicationServices.WorkingDatabase.GroupDictionaryId.QOpenForRead<DBDictionary>();
+            DBDictionary groupDict = HostApplicationServices.WorkingDatabase.GroupDictionaryId.QOpenForRead<DBDictionary>();
             Interaction.WriteLine("{0} groups", groupDict.Count);
         }
 
         [CommandMethod("TestUngroup")]
         public void TestUngroup()
         {
-            var ids = Interaction.GetSelection("\nSelect entities");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect entities");
             Modify.Ungroup(ids);
-            var groupDict = HostApplicationServices.WorkingDatabase.GroupDictionaryId.QOpenForRead<DBDictionary>();
+            DBDictionary groupDict = HostApplicationServices.WorkingDatabase.GroupDictionaryId.QOpenForRead<DBDictionary>();
             Interaction.WriteLine("{0} groups.", groupDict.Count);
         }
 
@@ -854,18 +854,18 @@ namespace PLC
         [CommandMethod("TestHatch2")]
         public void TestHatch2()
         {
-            var ids = Interaction.GetSelection("\nSelect entities");
+            ObjectId[] ids = Interaction.GetSelection("\nSelect entities");
             Draw.Hatch(ids);
         }
 
         [CommandMethod("TestArc")]
         public void TestArc()
         {
-            var point1 = Interaction.GetPoint("\nStart");
+            Point3d point1 = Interaction.GetPoint("\nStart");
             Draw.Circle(point1, 5);
-            var point2 = Interaction.GetPoint("\nMid");
+            Point3d point2 = Interaction.GetPoint("\nMid");
             Draw.Circle(point2, 5);
-            var point3 = Interaction.GetPoint("\nEnd");
+            Point3d point3 = Interaction.GetPoint("\nEnd");
             Draw.Circle(point3, 5);
             Draw.Arc3P(point1, point2, point3);
         }
@@ -873,9 +873,9 @@ namespace PLC
         [CommandMethod("TestArc2")]
         public void TestArc2()
         {
-            var start = Interaction.GetPoint("\nStart");
+            Point3d start = Interaction.GetPoint("\nStart");
             Draw.Circle(start, 5);
-            var center = Interaction.GetPoint("\nCenter");
+            Point3d center = Interaction.GetPoint("\nCenter");
             Draw.Circle(center, 5);
             double angle = Interaction.GetValue("\nAngle");
             Draw.ArcSCA(start, center, angle);
@@ -884,9 +884,9 @@ namespace PLC
         [CommandMethod("TestEllipse")]
         public void TestEllipse()
         {
-            var center = Interaction.GetPoint("\nCenter");
+            Point3d center = Interaction.GetPoint("\nCenter");
             Draw.Circle(center, 5);
-            var endX = Interaction.GetPoint("\nEnd of one axis");
+            Point3d endX = Interaction.GetPoint("\nEnd of one axis");
             Draw.Circle(endX, 5);
             double radiusY = Interaction.GetValue("\nRadius of another axis");
             Draw.Ellipse(center, endX, radiusY);
@@ -895,10 +895,10 @@ namespace PLC
         [CommandMethod("TestSpline")]
         public void TestSpline()
         {
-            var points = new List<Point3d>();
+            List<Point3d> points = new List<Point3d>();
             while (true)
             {
-                var point = Interaction.GetPoint("\nSpecify a point");
+                Point3d point = Interaction.GetPoint("\nSpecify a point");
                 if (point.IsNull())
                 {
                     break;
@@ -926,9 +926,9 @@ namespace PLC
                     break;
                 }
             }
-            var center = Interaction.GetPoint("\nCenter");
+            Point3d center = Interaction.GetPoint("\nCenter");
             Draw.Circle(center, 5);
-            var end = Interaction.GetPoint("\nOne vertex");
+            Point3d end = Interaction.GetPoint("\nOne vertex");
             Draw.Circle(end, 5);
             Draw.Polygon(n, center, end);
         }
@@ -936,10 +936,10 @@ namespace PLC
         [CommandMethod("ViewSpline")]
         public void ViewSpline()
         {
-            var id = Interaction.GetEntity("\nSelect a spline", typeof(Spline));
-            var spline = id.QOpenForRead<Spline>();
-            var knots = spline.NurbsData.GetKnots();
-            var knotPoints = knots.Cast<double>().Select(k => spline.GetPointAtParam(k)).ToList();
+            ObjectId id = Interaction.GetEntity("\nSelect a spline", typeof(Spline));
+            Spline spline = id.QOpenForRead<Spline>();
+            DoubleCollection knots = spline.NurbsData.GetKnots();
+            List<Point3d> knotPoints = knots.Cast<double>().Select(k => spline.GetPointAtParam(k)).ToList();
             knotPoints.ForEach(p => Draw.Circle(p, 5));
         }
 
@@ -953,7 +953,7 @@ namespace PLC
         [CommandMethod("TestTable")]
         public void TestTable()
         {
-            var contents = new List<List<string>>
+            List<List<string>> contents = new List<List<string>>
             {
                 new List<string>{ "1", "4", "9" },
                 new List<string>{ "1", "8", "27" },
@@ -973,12 +973,12 @@ namespace PLC
         public void TestLayout()
         {
             // TODO: verify the layout API change.
-            var layout = LayoutManager.Current.CreateLayout("TestLayout").QOpenForRead<Layout>();
+            Layout layout = LayoutManager.Current.CreateLayout("TestLayout").QOpenForRead<Layout>();
             LayoutManager.Current.CurrentLayout = "TestLayout";
-            var vps = layout.GetViewports();
+            ObjectIdCollection vps = layout.GetViewports();
             if (vps.Count > 1)
             {
-                var vpId = vps[1];
+                ObjectId vpId = vps[1];
                 Layouts.SetViewport(vpId, 100, 100, new Point3d(80, 80, 0), Point3d.Origin, 1000);
             }
         }
@@ -986,8 +986,8 @@ namespace PLC
         [CommandMethod("TestMeasure")]
         public void TestMeasure()
         {
-            var id = Interaction.GetEntity("\nSelect curve");
-            var cv = id.QOpenForRead<Curve>();
+            ObjectId id = Interaction.GetEntity("\nSelect curve");
+            Curve cv = id.QOpenForRead<Curve>();
             double length = Interaction.GetValue("\nInterval");
             Draw.Measure(cv, length, new DBPoint());
         }
@@ -995,8 +995,8 @@ namespace PLC
         [CommandMethod("TestDivide")]
         public void TestDivide()
         {
-            var id = Interaction.GetEntity("\nSelect curve");
-            var cv = id.QOpenForRead<Curve>();
+            ObjectId id = Interaction.GetEntity("\nSelect curve");
+            Curve cv = id.QOpenForRead<Curve>();
             int num = (int)Interaction.GetValue("\nNumbers");
             Draw.Divide(cv, num, new DBPoint());
         }
@@ -1004,22 +1004,22 @@ namespace PLC
         [CommandMethod("TestBoundary")]
         public void TestBoundary()
         {
-            var point = Interaction.GetPoint("\nPick one point");
+            Point3d point = Interaction.GetPoint("\nPick one point");
             Draw.Boundary(point, BoundaryType.Polyline);
         }
 
         [CommandMethod("TestHatch3")]
         public void TestHatch3()
         {
-            var seed = Interaction.GetPoint("\nPick one point");
+            Point3d seed = Interaction.GetPoint("\nPick one point");
             Draw.Hatch("SOLID", seed);
         }
 
         [CommandMethod("TestHatch4")]
         public void TestHatch4()
         {
-            var ids = Interaction.GetSelection("\nSelect entities");
-            var ents = ids.QSelect(entity => entity).ToArray();
+            ObjectId[] ids = Interaction.GetSelection("\nSelect entities");
+            Entity[] ents = ids.QSelect(entity => entity).ToArray();
             Draw.Hatch("SOLID", ents);
         }
 
@@ -1030,7 +1030,7 @@ namespace PLC
             int n = 100;
             double f(double x, double y) => 10 * Math.Cos((x * x + y * y) / 1000);
 
-            var points = new List<Point3d>();
+            List<Point3d> points = new List<Point3d>();
             for (int i = 0; i < m; i++)
             {
                 for (int j = 0; j < n; j++)
@@ -1048,8 +1048,8 @@ namespace PLC
         [CommandMethod("TestAddAttribute")]
         public void TestAppendAttribute()
         {
-            var id = Draw.Insert("test", Point3d.Origin);
-            var attribute = new AttributeReference
+            ObjectId id = Draw.Insert("test", Point3d.Origin);
+            AttributeReference attribute = new AttributeReference
             {
                 Tag = "test",
                 TextString = "test value",
@@ -1067,7 +1067,7 @@ namespace PLC
         public void TestKeywords()
         {
             string[] keys = { "A", "B", "C", "D" };
-            var key = Interaction.GetKeywords("\nChoose an option", keys, 3);
+            string key = Interaction.GetKeywords("\nChoose an option", keys, 3);
             Interaction.WriteLine("You chose {0}.", key);
         }
 

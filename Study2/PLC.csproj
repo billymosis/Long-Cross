@@ -95,6 +95,9 @@
       <HintPath>C:\ObjectARX 2013\inc\AcMgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="GeometryExtensions_19">
+      <HintPath>..\..\GeometryExtensions(1.6)\GeometryExtensions_19.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />

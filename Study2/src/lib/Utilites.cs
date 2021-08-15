@@ -17,24 +17,63 @@ namespace PLC
 {
     public static class Utilities
     {
-
-        //public static DBText Text(string text, Point3d position)
+        //foreach (Point3d point in LeftInnerIntersection)
         //{
-
-        //    var dbText = new DBText
+        //    crossEntities.Add(NoDraw.Line(new Point3d(point.X, point.Y + 0.2, 0), new Point3d(point.X, point.Y - 0.2, 0)));
+        //    foreach (Line line in OutterLines)
         //    {
-        //        TextString = text,
-        //        Position = position,
-        //        Rotation = rotation,
-        //        TextStyleId = textStyleId,
-        //        Height = height,
-        //        Oblique = style.ObliquingAngle,
-        //        WidthFactor = style.XScale
-        //    };
+        //        if (Collinear(line, point))
+        //        {
+        //            line.ColorIndex = 4;
 
+        //            foreach (Line item in line.GetSplitCurves(new Point3dCollection(new Point3d[] { point })))
+        //            {
+        //                if (item.StartPoint.X >= bli.StartPoint.X)
+        //                {
+        //                    Intersected.Add(item);
+        //                }
+        //            }
+        //        }
 
-        //    return dbText;
+        //    }
         //}
+
+        public static bool IsOrdered<T>(this IList<T> list, IComparer<T> comparer = null)
+        {
+            if (comparer == null)
+            {
+                comparer = Comparer<T>.Default;
+            }
+
+            if (list.Count > 1)
+            {
+                for (int i = 1; i < list.Count; i++)
+                {
+                    if (comparer.Compare(list[i - 1], list[i]) > 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+
+        }
+        public static Line2d ConvertLine2d(Line l)
+        {
+            Point2d p1 = ConvertPoint2d(l.StartPoint);
+            Point2d p2 = ConvertPoint2d(l.EndPoint);
+            return new Line2d(p1, p2);
+        }
+
+        public static Line Flatten(this Line x)
+        {
+            Point3d p1 = new Point3d(x.StartPoint.X, x.StartPoint.Y, 0);
+            Point3d p2 = new Point3d(x.EndPoint.X, x.EndPoint.Y, 0);
+            Line y = new Line(p1, p2);
+            x = y;
+            return y;
+        }
+
         public static void Print(string msg)
         {
             Document Doc = Application.DocumentManager.MdiActiveDocument;
@@ -48,7 +87,146 @@ namespace PLC
             Application.ShowAlertDialog(msg);
         }
 
-        public static ObjectId InsertBlock(string name, Point3d basePoint)
+
+
+        public static ObjectId GetBlockID(string blkName)
+        {
+
+            ObjectId blkId = ObjectId.Null;
+
+            if (Application.DocumentManager.MdiActiveDocument.Database == null)
+            {
+                return ObjectId.Null;
+            }
+
+            if (string.IsNullOrWhiteSpace(blkName))
+            {
+                return ObjectId.Null;
+            }
+
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                BlockTable bt = (BlockTable)tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead);
+                if (bt.Has(blkName))
+                {
+                    blkId = bt[blkName];
+                }
+
+                tr.Commit();
+            }
+            return blkId;
+        }
+
+        public static bool EraseBlkRefs(ObjectId blkId)
+        {
+            bool blkRefsErased = false;
+
+            if (blkId.IsNull)
+            {
+                return false;
+            }
+
+            Database db = blkId.Database;
+            if (db == null)
+            {
+                return false;
+            }
+
+            using (Transaction tr = db.TransactionManager.StartTransaction())
+            {
+                BlockTableRecord blk = (BlockTableRecord)tr.GetObject(blkId, OpenMode.ForRead);
+                ObjectIdCollection blkRefs = blk.GetBlockReferenceIds(true, true);
+                if (blkRefs != null && blkRefs.Count > 0)
+                {
+                    foreach (ObjectId blkRefId in blkRefs)
+                    {
+                        BlockReference blkRef = (BlockReference)tr.GetObject(blkRefId, OpenMode.ForWrite);
+                        blkRef.Erase();
+                    }
+                    blkRefsErased = true;
+                }
+                tr.Commit();
+            }
+            return blkRefsErased;
+        }
+
+
+
+        public static bool EraseBlk(ObjectId blkId)
+        {
+            bool blkIsErased = false;
+
+            if (blkId.IsNull)
+            {
+                return false;
+            }
+
+            Database db = blkId.Database;
+            if (db == null)
+            {
+                return false;
+            }
+
+            using (Transaction tr = db.TransactionManager.StartTransaction())
+            {
+
+                BlockTableRecord blk = (BlockTableRecord)tr.GetObject(blkId, OpenMode.ForRead);
+                ObjectIdCollection blkRefs = blk.GetBlockReferenceIds(true, true);
+                if (blkRefs == null || blkRefs.Count == 0)
+                {
+                    blk.UpgradeOpen();
+                    blk.Erase();
+                    blkIsErased = true;
+                }
+                tr.Commit();
+            }
+            return blkIsErased;
+        }
+
+        public static double ConvertDegreesToRadians(double degrees)
+        {
+            double radians = (Math.PI / 180) * degrees;
+            return (radians);
+        }
+
+        public static void DeleteBlock(Nodes item)
+        {
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
+                {
+                    if (bt.Has(item.Patok))
+                    {
+                        ObjectId blkId = bt[item.Patok];
+                        EraseBlkRefs(blkId);
+                        EraseBlk(blkId);
+                    }
+                }
+                tr.Commit();
+            }
+        }
+
+        public static ObjectId[] GetBlockContent(string blockName)
+        {
+            List<ObjectId> ids = new List<ObjectId>();
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
+                {
+                    ObjectId x = bt[blockName];
+                    using (BlockTableRecord btr = tr.GetObject(x, OpenMode.ForRead) as BlockTableRecord)
+                    {
+                        foreach (ObjectId item in btr)
+                        {
+                            ids.Add(item);
+                        }
+                    }
+                }
+                tr.Commit();
+                return ids.ToArray();
+            }
+        }
+        public static ObjectId InsertBlock(string source, Point3d basePoint)
         {
             ObjectId id;
             using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
@@ -58,7 +236,7 @@ namespace PLC
                     using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
                     {
 
-                        using (BlockReference brf = new BlockReference(basePoint, bt[name]))
+                        using (BlockReference brf = new BlockReference(basePoint, bt[source]))
                         {
                             id = btr.AppendEntity(brf);
                         }
@@ -70,8 +248,58 @@ namespace PLC
             return id;
         }
 
+        public static ObjectId InsertBlockToBlock(string source, string target, Point3d basePoint)
+        {
+            ObjectId id;
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
+                {
+                    ObjectId x = bt[target];
+                    using (BlockTableRecord btr = tr.GetObject(x, OpenMode.ForWrite) as BlockTableRecord)
+                    {
+
+                        using (BlockReference brf = new BlockReference(basePoint, bt[source]))
+                        {
+                            id = btr.AppendEntity(brf);
+                        }
+
+                    }
+                }
+                tr.Commit();
+            }
+            return id;
+        }
+
+        public static ObjectId[] ModifyBlock(this IEnumerable<Entity> entities, string blockName, Point3d origin = new Point3d())
+        {
+            List<ObjectId> ids = new List<ObjectId>();
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            {
+                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
+                {
+                    ObjectId x = bt[blockName];
+                    using (BlockTableRecord btr = tr.GetObject(x, OpenMode.ForWrite) as BlockTableRecord)
+                    {
+                        foreach (Entity item in entities)
+                        {
+                            ObjectId id = btr.AppendEntity(item);
+                            ids.Add(id);
+                            tr.AddNewlyCreatedDBObject(item, true);
+                        }
+
+
+                    }
+                }
+                tr.Commit();
+                return ids.ToArray();
+            }
+        }
+
         public static ObjectId[] AddToBlock(this IEnumerable<Entity> entities, string blockName, Point3d origin = new Point3d())
         {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
             List<ObjectId> ids = new List<ObjectId>();
             using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
             {
@@ -80,6 +308,7 @@ namespace PLC
                     using (BlockTableRecord btr = new BlockTableRecord())
                     {
                         btr.Name = blockName;
+
                         foreach (Entity item in entities)
                         {
                             ObjectId id = btr.AppendEntity(item);
@@ -87,6 +316,8 @@ namespace PLC
                         }
                         btr.Origin = origin;
                         bt.Add(btr);
+
+
                     }
                 }
                 tr.Commit();
