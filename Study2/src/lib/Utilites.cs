@@ -1,8 +1,11 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
+using Dreambuild.AutoCAD;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,31 +15,414 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-
+using AcRx = Autodesk.AutoCAD.Runtime;
 namespace PLC
 {
+
+
     public static class Utilities
     {
-        //foreach (Point3d point in LeftInnerIntersection)
-        //{
-        //    crossEntities.Add(NoDraw.Line(new Point3d(point.X, point.Y + 0.2, 0), new Point3d(point.X, point.Y - 0.2, 0)));
-        //    foreach (Line line in OutterLines)
-        //    {
-        //        if (Collinear(line, point))
-        //        {
-        //            line.ColorIndex = 4;
+        public static void SetAttributes(string TagName, string Value, ObjectId BlockId)
+        {
+            BlockId.QOpenForWrite<BlockReference>
+            (x =>
+            {
+                foreach (ObjectId item in x.AttributeCollection)
+                {
+                    item.QOpenForWrite<AttributeReference>
+                    (
+                        y =>
+                        {
+                            if (y.Tag == TagName)
+                            {
+                                y.TextString = Value;
+                            }
+                        }
+                    );
+                }
+            }
+            );
+        }
 
-        //            foreach (Line item in line.GetSplitCurves(new Point3dCollection(new Point3d[] { point })))
-        //            {
-        //                if (item.StartPoint.X >= bli.StartPoint.X)
-        //                {
-        //                    Intersected.Add(item);
-        //                }
-        //            }
-        //        }
+        public static double GetRegionArea(string LayerName, ObjectId BlockId)
+        {
+            ObjectId btrid = BlockId.QOpenForRead<BlockReference>().BlockTableRecord;
+            List<ObjectId> ids = new List<ObjectId>();
+            double Area = 0;
+            foreach (ObjectId item in btrid.QOpenForRead<BlockTableRecord>())
+            {
+                ids.Add(item);
+            }
+            ids.QForEach<Entity>(x =>
+            {
+                if (x.Layer == LayerName && x.GetType() == typeof(Region))
+                {
+                    Area += (x as Region).Area;
+                }
 
-        //    }
-        //}
+            }
+            );
+            return Area;
+        }
+
+        private static readonly RXClass attDefClass = RXClass.GetClass(typeof(AttributeDefinition));
+
+        public static void SynchronizeAttributes(this BlockTableRecord target)
+        {
+            if (target == null)
+            {
+                throw new ArgumentNullException("target");
+            }
+
+            Transaction tr = target.Database.TransactionManager.TopTransaction;
+            if (tr == null)
+            {
+                throw new AcRx.Exception(ErrorStatus.NoActiveTransactions);
+            }
+
+            List<AttributeDefinition> attDefs = target.GetAttributes(tr);
+            foreach (ObjectId id in target.GetBlockReferenceIds(true, false))
+            {
+                BlockReference br = (BlockReference)tr.GetObject(id, OpenMode.ForWrite);
+                br.ResetAttributes(attDefs, tr);
+            }
+            if (target.IsDynamicBlock)
+            {
+                target.UpdateAnonymousBlocks();
+                foreach (ObjectId id in target.GetAnonymousBlockIds())
+                {
+                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(id, OpenMode.ForRead);
+                    attDefs = btr.GetAttributes(tr);
+                    foreach (ObjectId brId in btr.GetBlockReferenceIds(true, false))
+                    {
+                        BlockReference br = (BlockReference)tr.GetObject(brId, OpenMode.ForWrite);
+                        br.ResetAttributes(attDefs, tr);
+                    }
+                }
+            }
+        }
+
+        private static List<AttributeDefinition> GetAttributes(this BlockTableRecord target, Transaction tr)
+        {
+            List<AttributeDefinition> attDefs = new List<AttributeDefinition>();
+            foreach (ObjectId id in target)
+            {
+                if (id.ObjectClass == attDefClass)
+                {
+                    AttributeDefinition attDef = (AttributeDefinition)tr.GetObject(id, OpenMode.ForRead);
+                    attDefs.Add(attDef);
+                }
+            }
+            return attDefs;
+        }
+
+        private static void ResetAttributes(this BlockReference br, List<AttributeDefinition> attDefs, Transaction tr)
+        {
+            Dictionary<string, string> attValues = new Dictionary<string, string>();
+            foreach (ObjectId id in br.AttributeCollection)
+            {
+                if (!id.IsErased)
+                {
+                    AttributeReference attRef = (AttributeReference)tr.GetObject(id, OpenMode.ForWrite);
+                    attValues.Add(attRef.Tag,
+                        attRef.IsMTextAttribute ? attRef.MTextAttribute.Contents : attRef.TextString);
+                    attRef.Erase();
+                }
+            }
+            foreach (AttributeDefinition attDef in attDefs)
+            {
+                AttributeReference attRef = new AttributeReference();
+                attRef.SetAttributeFromBlock(attDef, br.BlockTransform);
+                if (attDef.Constant)
+                {
+                    attRef.TextString = attDef.IsMTextAttributeDefinition ?
+                        attDef.MTextAttributeDefinition.Contents :
+                        attDef.TextString;
+                }
+                else if (attValues.ContainsKey(attRef.Tag))
+                {
+                    attRef.TextString = attValues[attRef.Tag];
+                }
+                br.AttributeCollection.AppendAttribute(attRef);
+                tr.AddNewlyCreatedDBObject(attRef, true);
+            }
+        }
+
+        public static List<Entity> GetFillRegion(Region nodes, Region objects, Point3d basePosition)
+        {
+            List<Entity> fillRegion = new List<Entity>();
+            string Layer = objects.Layer;
+            Region cross = nodes;
+            Point3d BottomBound = cross.Bounds.Value.MinPoint;
+            Point3d Left = objects.Bounds.Value.MinPoint;
+            Point3d Right = objects.Bounds.Value.MaxPoint;
+            Region reg1 = GetIntersectedArea(cross.Clone() as Region, objects.Clone() as Region) as Region;
+            if (basePosition.Y >= BottomBound.Y)
+            {
+                bool isRegion = false;
+                double BaseStructureElevation = Left.Y <= BottomBound.Y ? Left.Y : BottomBound.Y;
+                Polyline Bounds = NoDraw.Rectang(new Point3d(Left.X, BaseStructureElevation, 0), new Point3d(Right.X, Right.Y, 0));
+                if (Bounds.Area != 0)
+                {
+                    Region BoundReg = CreateRegionFromPolyline(Bounds);
+                    Region sub = GetSubtractedArea(BoundReg, objects.Clone() as Region);
+                    sub = GetSubtractedArea(sub.Clone() as Region, cross.Clone() as Region);
+                    sub = GetSubtractedArea(sub.Clone() as Region, objects.Clone() as Region);
+                    if (sub.Area == 0)
+                    {
+                        return fillRegion;
+                    }
+                    DBObjectCollection result = new DBObjectCollection();
+                    sub.Explode(result);
+
+                    foreach (Entity res in result)
+                    {
+                        if (res.GetType() == typeof(Region))
+                        {
+                            isRegion = true;
+                        }
+                    }
+                    if (isRegion)
+                    {
+                        foreach (Region regi in result)
+                        {
+                            if (regi.Bounds.Value.MinPoint.Y < basePosition.Y)
+                            {
+
+                                fillRegion.Add(regi);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (sub.Bounds.Value.MinPoint.Y < basePosition.Y)
+                        {
+                            fillRegion.Add(sub);
+                        }
+                    }
+
+                }
+
+            }
+            foreach (Entity item in fillRegion)
+            {
+                if (string.IsNullOrEmpty(item.Layer))
+                {
+                    item.Layer = "Fill-Region";
+                }
+            }
+            return fillRegion;
+
+        }
+
+        public static List<Entity> GetCutRegion(Region nodes, Region objects, Point3d basePosition)
+        {
+            List<Entity> cutRegion = new List<Entity>();
+            string Layer = objects.Layer;
+            Region cross = nodes;
+            Point3d TopBound = cross.Bounds.Value.MaxPoint;
+            Point3d BottomBound = cross.Bounds.Value.MinPoint;
+            Point3d Left = objects.Bounds.Value.MinPoint;
+            Point3d Right = objects.Bounds.Value.MaxPoint;
+            Region reg1 = GetIntersectedArea(cross.Clone() as Region, objects.Clone() as Region) as Region;
+            if (reg1.Area != 0)
+            {
+                bool isRegion = false;
+                bool isInnerRegion = false;
+                double BaseStructureElevation = Right.Y <= BottomBound.Y ? Right.Y : TopBound.Y;
+                Polyline Bounds = NoDraw.Rectang(Left, new Point3d(Right.X, BaseStructureElevation, 0));
+                DBObjectCollection InnerResults = new DBObjectCollection();
+                (reg1.Clone() as Entity).Explode(InnerResults);
+                foreach (Entity InnerResult in InnerResults)
+                {
+                    if (InnerResult.GetType() == typeof(Region))
+                    {
+                        isInnerRegion = true;
+                    }
+                }
+                if (isInnerRegion)
+                {
+                    foreach (Entity regi in InnerResults)
+                    {
+                        cutRegion.Add(regi);
+                    }
+                }
+                else
+                {
+                    cutRegion.Add(reg1);
+                }
+
+                if (Bounds.Area != 0)
+                {
+                    Region BoundReg = CreateRegionFromPolyline(Bounds);
+                    Region sub = GetSubtractedArea(BoundReg, objects.Clone() as Region);
+                    sub = GetSubtractedArea(cross.Clone() as Region, sub.Clone() as Region);
+                    sub = GetSubtractedArea(cross.Clone() as Region, sub.Clone() as Region);
+                    if (sub.Area != 0)
+                    {
+                        DBObjectCollection result = new DBObjectCollection();
+                        sub.Explode(result);
+                        foreach (Entity res in result)
+                        {
+                            if (res.GetType() == typeof(Region))
+                            {
+                                isRegion = true;
+                            }
+                        }
+                        if (isRegion)
+                        {
+                            foreach (Entity regi in result)
+                            {
+                                if (regi.Bounds.Value.MinPoint.Y >= basePosition.Y)
+                                {
+                                    cutRegion.Add(regi);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            cutRegion.Add(sub);
+                        }
+
+                    }
+
+                }
+            }
+            foreach (Entity item in cutRegion)
+            {
+                if (string.IsNullOrEmpty(item.Layer))
+                {
+                    item.Layer = "Cut-Region";
+                }
+            }
+            return cutRegion;
+        }
+
+        public static void CreateLayer(string layName, short ColorIndex)
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+            Editor ed = doc.Editor;
+            Transaction tr = db.TransactionManager.StartTransaction();
+            using (tr)
+            {
+                LayerTable lt = tr.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
+                SymbolUtilityServices.ValidateSymbolName(layName, false);
+                if (!lt.Has(layName))
+                {
+                    LayerTableRecord ltr = new LayerTableRecord()
+                    {
+                        Name = layName,
+                        Color = Color.FromColorIndex(ColorMethod.ByAci, ColorIndex)
+                    };
+                    lt.UpgradeOpen();
+                    ObjectId ltId = lt.Add(ltr);
+                    tr.AddNewlyCreatedDBObject(ltr, true);
+                    tr.Commit();
+                }
+            }
+
+        }
+
+        public static Hatch HatchEntity(Nodes nodes, Entity reg1, string hatchName, double angle, string layer)
+        {
+            Hatch hatch = new Hatch();
+            hatch.SetHatchPattern(HatchPatternType.PreDefined, hatchName);
+            hatch.PatternAngle = angle;
+            hatch.HatchStyle = HatchStyle.Normal;
+            hatch.PatternScale = 1;
+            hatch.Layer = layer;
+            ObjectId[] x = new List<Entity>() { reg1 as Entity }.ToArray().ModifyBlock(nodes.Patok);
+            hatch.AppendLoop(HatchLoopTypes.Default, new ObjectIdCollection(x));
+            return hatch;
+        }
+
+        public static bool Collinear(Line line, Point3d p)
+        {
+            double y1 = line.StartPoint.Y;
+            double y2 = line.EndPoint.Y;
+            double y3 = p.Y;
+            double x1 = line.StartPoint.X;
+            double x2 = line.EndPoint.X;
+            double x3 = p.X;
+            return Math.Abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= 1e-9;
+        }
+
+        public static Region GetSubtractedArea(Polyline pline1, Polyline pline2)
+        {
+            Region region1 = CreateRegionFromPolyline(pline1);
+            Region region2 = CreateRegionFromPolyline(pline2);
+            region1.BooleanOperation(BooleanOperationType.BoolSubtract, region2);
+            return region1;
+        }
+
+        public static Region GetIntersectedArea(Polyline pline1, Polyline pline2)
+        {
+            Region region1 = CreateRegionFromPolyline(pline1);
+            Region region2 = CreateRegionFromPolyline(pline2);
+            region1.BooleanOperation(BooleanOperationType.BoolIntersect, region2);
+            return region1;
+        }
+
+        public static Region GetSubtractedArea(Region region1, Region region2)
+        {
+            region1.BooleanOperation(BooleanOperationType.BoolSubtract, region2);
+            return region1.Clone() as Region;
+        }
+
+        public static Region GetIntersectedArea(Region region1, Region region2)
+        {
+            region1.BooleanOperation(BooleanOperationType.BoolIntersect, region2);
+            return region1.Clone() as Region;
+        }
+
+        public static Region CreateRegionFromPolyline(Polyline pline)
+        {
+            DBObjectCollection source = new DBObjectCollection
+            {
+                pline
+            };
+            DBObjectCollection regions = Region.CreateFromCurves(source);
+            return regions[0] as Region;
+        }
+
+        public static Point3dCollection GetIntersectionPoint(Line bli, List<Line> OutterLines)
+        {
+            Point3dCollection InnerIntersections = new Point3dCollection();
+            foreach (Entity item in OutterLines)
+            {
+                Point3dCollection g1 = new Point3dCollection();
+
+                bli.IntersectWith(item, Intersect.OnBothOperands, g1, IntPtr.Zero, IntPtr.Zero);
+                foreach (Point3d gg1 in g1)
+                {
+                    InnerIntersections.Add(gg1);
+                }
+            }
+            return InnerIntersections;
+        }
+
+        public static Point3dCollection GetIntersectionPoint(Line bli, Line bri, List<Line> OutterLines)
+        {
+            Point3dCollection InnerIntersections = new Point3dCollection();
+            foreach (Entity item in OutterLines)
+            {
+                Point3dCollection g1 = new Point3dCollection();
+                Point3dCollection g2 = new Point3dCollection();
+
+                bli.IntersectWith(item, Intersect.OnBothOperands, g1, IntPtr.Zero, IntPtr.Zero);
+                bri.IntersectWith(item, Intersect.OnBothOperands, g2, IntPtr.Zero, IntPtr.Zero);
+                foreach (Point3d gg1 in g1)
+                {
+                    InnerIntersections.Add(gg1);
+                }
+                foreach (Point3d gg2 in g2)
+                {
+                    InnerIntersections.Add(gg2);
+                }
+            }
+            return InnerIntersections;
+        }
 
         public static bool IsOrdered<T>(this IList<T> list, IComparer<T> comparer = null)
         {
@@ -58,6 +444,7 @@ namespace PLC
             return true;
 
         }
+
         public static Line2d ConvertLine2d(Line l)
         {
             Point2d p1 = ConvertPoint2d(l.StartPoint);
@@ -86,8 +473,6 @@ namespace PLC
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Application.ShowAlertDialog(msg);
         }
-
-
 
         public static ObjectId GetBlockID(string blkName)
         {
@@ -149,8 +534,6 @@ namespace PLC
             }
             return blkRefsErased;
         }
-
-
 
         public static bool EraseBlk(ObjectId blkId)
         {
@@ -226,6 +609,7 @@ namespace PLC
                 return ids.ToArray();
             }
         }
+
         public static ObjectId InsertBlock(string source, Point3d basePoint)
         {
             ObjectId id;
@@ -265,6 +649,7 @@ namespace PLC
                         }
 
                     }
+
                 }
                 tr.Commit();
             }
@@ -296,11 +681,12 @@ namespace PLC
             }
         }
 
-        public static ObjectId[] AddToBlock(this IEnumerable<Entity> entities, string blockName, Point3d origin = new Point3d())
+        public static ObjectId AddToBlock(this IEnumerable<Entity> entities, string blockName, Point3d origin = new Point3d())
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
             List<ObjectId> ids = new List<ObjectId>();
+            ObjectId idx;
             using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
             {
                 using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForWrite) as BlockTable)
@@ -316,13 +702,14 @@ namespace PLC
                         }
                         btr.Origin = origin;
                         bt.Add(btr);
-
+                        idx = btr.Id;
 
                     }
                 }
                 tr.Commit();
-                return ids.ToArray();
+
             }
+            return idx;
         }
 
         public static void Bubble(string myTitle, string myMessage)
@@ -422,6 +809,7 @@ namespace PLC
                 newTransaction.Commit();
             }
         }
+
         public static void LoadLinetype()
         {
             // Get the current document and database
@@ -545,6 +933,7 @@ namespace PLC
             return new Point2d(pPt.X + dDist * Math.Cos(dAng),
                                  pPt.Y + dDist * Math.Sin(dAng));
         }
+
         public static Point3d PolarPoints(Point3d pPt, double dAng, double dDist)
         {
             return new Point3d(pPt.X + dDist * Math.Cos(dAng),

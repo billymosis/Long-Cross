@@ -13,6 +13,7 @@ namespace PLC
         public static bool Licensed = false;
         public static TrayItem MyTray;
         public static Licensing.CheckLicense CheckLicense;
+        public static string dataPath;
 
         public static void AddCounter(int i)
         {

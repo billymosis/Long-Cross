@@ -10,13 +10,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using static PLC.Utilities;
-using ge = GeometryExtensions;
-
-
 
 namespace PLC
 {
-    public struct Positions
+    public class Positions
     {
         public Point3d Point { get; set; }
         public int Row { get; set; }
@@ -27,6 +24,13 @@ namespace PLC
             Row = row;
             Column = column;
         }
+    }
+
+    public enum EarthWorks
+    {
+        Cut,
+        Fill,
+        Both
     }
 
     public class Cross
@@ -41,103 +45,10 @@ namespace PLC
         private const double MAXIMUM_TEXT_LABEL_WIDTH = 0.6;
         public Dictionary<string, Positions> positions = new Dictionary<string, Positions>();
 
-        [CommandMethod("ExDraw")]
-        public static void ExDraw()
-        {
-            ProgressMeter pm = new ProgressMeter();
-            pm.Start("Processing...");
-            const bool isCrossOnly = true;
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ")
-            {
-                Filter = "Cross File (*.csv;*.txt)|*.csv;*.txt"
-            };
-            string path = ed.GetFileNameForOpen(POFO).StringResult;
-            if (string.IsNullOrEmpty(path))
-            {
-                return;
-            }
-            string s = path;
-            Stopwatch stopwatch = new Stopwatch();
-            Data data = new Data(s);
-            Cross x = new Cross(data.canal);
-
-            List<Nodes> CrossData = new List<Nodes>();
-            if (isCrossOnly)
-            {
-                CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
-            }
-
-            pm.SetLimit(CrossData.Count());
-            foreach (Nodes item in CrossData)
-            {
-                if (item.ValidCross)
-                {
-                    pm.MeterProgress();
-                    DeleteBlock(item);
-                    x.Draw(item);
-                    x.DrawStructure(item);
-                    x.Place(item);
-                }
-                else
-                {
-                    ed.WriteMessage("Error Cross: " + item.Patok + " Distance data is not ordered in sequence \n");
-                }
-
-            }
-            pm.Stop();
-            ed.Regen();
-        }
-        [CommandMethod("DeDraw")]
-        public static void DeDraw()
-        {
-            ProgressMeter pm = new ProgressMeter();
-            pm.Start("Processing...");
-            const bool isCrossOnly = true;
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ")
-            {
-                Filter = "Cross File (*.csv;*.txt)|*.csv;*.txt"
-            };
-            string path = ed.GetFileNameForOpen(POFO).StringResult;
-            if (string.IsNullOrEmpty(path))
-            {
-                return;
-            }
-            string s = path;
-            Stopwatch stopwatch = new Stopwatch();
-            Data data = new Data(s);
-            Cross x = new Cross(data.canal);
-
-            List<Nodes> CrossData = new List<Nodes>();
-            if (isCrossOnly)
-            {
-                CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
-            }
-
-            pm.SetLimit(CrossData.Count());
-            foreach (Nodes item in CrossData)
-            {
-                if (item.ValidCross)
-                {
-                    pm.MeterProgress();
-                    x.DrawStructure(item);
-                }
-                else
-                {
-                    ed.WriteMessage("Error Cross: " + item.Patok + " Distance data is not ordered in sequence \n");
-                }
-
-            }
-            pm.Stop();
-            ed.Regen();
-        }
-
-
         public Cross(Canal data)
         {
+            CreateLayer("Cut", 1);
+            CreateLayer("Fill", 2);
             this.data = data;
             int row = 0;
             int column = 0;
@@ -156,229 +67,140 @@ namespace PLC
             });
         }
 
-        private static Region GetSubtractedArea(Polyline pline1, Polyline pline2)
+        public void DrawStructure(Nodes nodes, Structure structure, bool currentSpace, EarthWorks earthWorks)
         {
-            Region region1 = CreateRegionFromPolyline(pline1);
-            Region region2 = CreateRegionFromPolyline(pline2);
-            region1.BooleanOperation(BooleanOperationType.BoolSubtract, region2);
-            return region1;
-        }
-        private static Region GetIntersectedArea(Polyline pline1, Polyline pline2)
-        {
-            Region region1 = CreateRegionFromPolyline(pline1);
-            Region region2 = CreateRegionFromPolyline(pline2);
-            region1.BooleanOperation(BooleanOperationType.BoolIntersect, region2);
-            return region1;
-        }
-
-        private static Region GetSubtractedArea(Region region1, Region region2)
-        {
-            region1.BooleanOperation(BooleanOperationType.BoolSubtract, region2);
-            return region1.Clone() as Region;
-        }
-
-        private static Region GetIntersectedArea(Region region1, Region region2)
-        {
-            region1.BooleanOperation(BooleanOperationType.BoolIntersect, region2);
-            return region1.Clone() as Region;
-        }
-
-        private static Region CreateRegionFromPolyline(Polyline pline)
-        {
-            DBObjectCollection source = new DBObjectCollection
-            {
-                pline
-            };
-            DBObjectCollection regions = Region.CreateFromCurves(source);
-            return regions[0] as Region;
-        }
-
-
-        // INTERSECT CUT
-        // SUBTRACT FILL
-
-        public void DrawStructure(Nodes nodes)
-        {
-            Point3d CENTER_DESGIN_POINT = nodes.AsPoint2d;
-            Point3d design1 = new Point3d(CENTER_DESGIN_POINT.X - 10, CENTER_DESGIN_POINT.Y + 1, 0);
-            Point3d design2 = new Point3d(CENTER_DESGIN_POINT.X + 10, CENTER_DESGIN_POINT.Y + 1, 0);
-            Point3d design3 = new Point3d(CENTER_DESGIN_POINT.X, CENTER_DESGIN_POINT.Y, 0);
-            List<Entity> crossEntities = new List<Entity>();
-
-            Dictionary<Region, Point3d> structureDictionary = new Dictionary<Region, Point3d>();
-            Dictionary<string, Point3d> Design = new Dictionary<string, Point3d>()
-            {
-                { "RightWall", design2 },
-                { "LeftWall", design1 },
-                { "B10", design3 }
-            };
-
-            Region Cross = DrawFlatCrossRegion(nodes);
-
-            foreach (KeyValuePair<string, Point3d> item in Design)
-            {
-                InsertBlockToBlock(item.Key, nodes.Patok, item.Value);
-                structureDictionary.Add(GetBlockContent(item.Key).QOpenForRead<Entity>().Where(x => x.GetType() == typeof(Region)).First().Clone() as Region, item.Value);
-            }
+            Dictionary<Entity, EarthWorks> crossEntities = new Dictionary<Entity, EarthWorks>();
+            Dictionary<Region, Point3d> structureDictionary = structure.structureDictionary;
+            Dictionary<string, Point3d> Design = structure.Design;
+            Region cross = DrawFlatCrossRegion(nodes);
 
             foreach (KeyValuePair<Region, Point3d> item in structureDictionary)
             {
-                List<Entity> cutRegion = new List<Entity>();
-                List<Entity> cutHatch = new List<Entity>();
-                List<Entity> fillRegion = new List<Entity>();
-                List<Entity> fillHatch = new List<Entity>();
                 Region reg = item.Key;
-                Vector3d vec = new Point3d().GetVectorTo(item.Value);
-                reg.TransformBy(Matrix3d.Displacement(vec));
-                Region reg1 = GetIntersectedArea(Cross.Clone() as Region, reg.Clone() as Region) as Region;
-                Point3d Left = reg.Bounds.Value.MinPoint;
-                Point3d Right = reg.Bounds.Value.MaxPoint;
-
-                // CUT
-                if (reg1.Area != 0)
+                string Layer = item.Key.Layer;
+                if (structure.useBlock)
                 {
-                    bool isRegion = false;
-                    bool isInnerRegion = false;
-                    double BaseStructureElevation = Right.Y <= nodes.Lowest_Elevation ? Right.Y : nodes.Maximum_Elevation;
-                    Polyline Bounds = NoDraw.Rectang(Left, new Point3d(Right.X, BaseStructureElevation, 0));
-                    DBObjectCollection InnerResults = new DBObjectCollection();
-                    (reg1.Clone() as Entity).Explode(InnerResults);
-                    foreach (Entity InnerResult in InnerResults)
-                    {
-                        if (InnerResult.GetType() == typeof(Region))
-                        {
-                            isInnerRegion = true;
-                        }
-                    }
-                    if (isInnerRegion)
-                    {
-                        foreach (Entity regi in InnerResults)
-                        {
-                            cutRegion.Add(regi);
-                        }
-                    }
-                    else
-                    {
-                        cutRegion.Add(reg1);
-                    }
-
-                    if (Bounds.Area != 0)
-                    {
-                        Region BoundReg = CreateRegionFromPolyline(Bounds);
-                        Region sub = GetSubtractedArea(BoundReg, reg.Clone() as Region);
-                        sub = GetSubtractedArea(Cross.Clone() as Region, sub.Clone() as Region);
-                        sub = GetSubtractedArea(Cross.Clone() as Region, sub.Clone() as Region);
-                        if (sub.Area != 0)
-                        {
-                            DBObjectCollection result = new DBObjectCollection();
-                            sub.Explode(result);
-                            foreach (Entity res in result)
-                            {
-                                if (res.GetType() == typeof(Region))
-                                {
-                                    isRegion = true;
-                                }
-                            }
-                            if (isRegion)
-                            {
-                                foreach (Entity regi in result)
-                                {
-                                    if (regi.Bounds.Value.MinPoint.Y >= item.Value.Y)
-                                    {
-                                        cutRegion.Add(regi);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                cutRegion.Add(sub);
-                            }
-
-                        }
-
-                    }
-                    foreach (Entity region in cutRegion)
-                    {
-                        crossEntities.Add(HatchEntity(nodes, region, "ANSI31", ConvertDegreesToRadians(135), 1));
-                    }
-
+                    Vector3d vec = new Point3d().GetVectorTo(item.Value);
+                    reg.TransformBy(Matrix3d.Displacement(vec));
                 }
 
-                //FILL
-                if (item.Value.Y >= nodes.Lowest_Elevation)
+                switch (earthWorks)
                 {
-                    bool isRegion = false;
-                    double BaseStructureElevation = Left.Y <= nodes.Lowest_Elevation ? Left.Y : nodes.Lowest_Elevation;
-                    Polyline Bounds = NoDraw.Rectang(new Point3d(Left.X, BaseStructureElevation, 0), new Point3d(Right.X, Right.Y, 0));
-                    if (Bounds.Area != 0)
+                    case EarthWorks.Cut:
+                        foreach (Entity region in GetCutRegion(cross, item.Key, item.Value))
+                        {
+                            if (region.Layer == "Cut-Region")
+                            {
+                                crossEntities.Add(region, EarthWorks.Cut);
+                            }
+                        }
+                        break;
+                    case EarthWorks.Fill:
+                        foreach (Entity region in GetFillRegion(cross, item.Key, item.Value))
+                        {
+                            if (region.Layer == "Fill-Region")
+                            {
+                                crossEntities.Add(region, EarthWorks.Fill);
+                            }
+                        }
+                        break;
+                    case EarthWorks.Both:
+                        if (Layer == "Both-Region" || Layer == "Cut-Region")
+                        {
+                            foreach (Entity region in GetCutRegion(cross, item.Key, item.Value))
+                            {
+                                crossEntities.Add(region, EarthWorks.Cut);
+                            }
+                        }
+                        if (Layer == "Both-Region" || Layer == "Fill-Region")
+                        {
+                            foreach (Entity region in GetFillRegion(cross, item.Key, item.Value))
+                            {
+                                crossEntities.Add(region, EarthWorks.Fill);
+                            }
+                        }
+
+
+
+                        break;
+                    default:
+                        break;
+                }
+
+
+            }
+
+            if (currentSpace)
+            {
+                List<ObjectId> Cobject = new List<ObjectId>();
+                List<ObjectId> Fobject = new List<ObjectId>();
+                foreach (KeyValuePair<Entity, EarthWorks> item in crossEntities)
+                {
+                    switch (item.Value)
                     {
-                        Region BoundReg = CreateRegionFromPolyline(Bounds);
-                        Region sub = GetSubtractedArea(BoundReg, reg.Clone() as Region);
-                        sub = GetSubtractedArea(sub.Clone() as Region, Cross.Clone() as Region);
-                        sub = GetSubtractedArea(sub.Clone() as Region, reg.Clone() as Region);
-                        DBObjectCollection result = new DBObjectCollection();
-                        sub.Explode(result);
-
-                        foreach (Entity res in result)
-                        {
-                            if (res.GetType() == typeof(Region))
-                            {
-                                isRegion = true;
-                            }
-                        }
-                        if (isRegion)
-                        {
-                            foreach (Region regi in result)
-                            {
-                                if (regi.Bounds.Value.MinPoint.Y < item.Value.Y)
-                                {
-
-                                    fillRegion.Add(regi);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (sub.Bounds.Value.MinPoint.Y < item.Value.Y)
-                            {
-                                fillRegion.Add(sub);
-                            }
-                        }
-
+                        case EarthWorks.Cut:
+                            ObjectId x = item.Key.AddToCurrentSpace();
+                            x.SetLayer("Cut");
+                            Cobject.Add(x);
+                            break;
+                        case EarthWorks.Fill:
+                            ObjectId y = item.Key.AddToCurrentSpace();
+                            y.SetLayer("Fill");
+                            Fobject.Add(y);
+                            break;
+                        default:
+                            break;
                     }
-                    foreach (Entity region in fillRegion)
-                    {
-                        crossEntities.Add(HatchEntity(nodes, region, "ANSI31", ConvertDegreesToRadians(45), 2));
-                    }
+                }
+                if (Cobject.Count > 0)
+                {
+                    Dreambuild.AutoCAD.Draw.Hatch(Cobject.ToArray(), "ANSI31", 1, ConvertDegreesToRadians(135)).SetLayer("Cut");
+                }
+                if (Fobject.Count > 0)
+                {
+                    Dreambuild.AutoCAD.Draw.Hatch(Fobject.ToArray(), "ANSI31", 1, ConvertDegreesToRadians(45)).SetLayer("Fill");
                 }
 
             }
 
-            crossEntities.ToArray().ModifyBlock(nodes.Patok);
-        }
+            else
+            {
+                List<Entity> Ents = new List<Entity>();
+                foreach (KeyValuePair<Entity, EarthWorks> item in crossEntities)
+                {
+                    switch (item.Value)
+                    {
+                        case EarthWorks.Cut:
+                            item.Key.Layer = "Cut";
+                            Ents.Add(HatchEntity(nodes, item.Key, "ANSI31", ConvertDegreesToRadians(135), "Cut"));
+                            break;
+                        case EarthWorks.Fill:
+                            item.Key.Layer = "Fill";
+                            Ents.Add(HatchEntity(nodes, item.Key, "ANSI31", ConvertDegreesToRadians(45), "Fill"));
+                            break;
+                        default:
+                            break;
+                    }
+                }
 
-        private static Region DrawFlatCrossRegion(Nodes nodes)
-        {
-            Polyline Cross = NoDraw.Pline(ConvertP3DC2List(nodes.FlatNodePoint));
-            Point2d pstart = Cross.GetPoint2dAt(0);
-            Point2d pend = Cross.GetPoint2dAt(Cross.NumberOfVertices - 1);
-            Cross.AddVertexAt(0, new Point2d(pstart.X, nodes.Datum), 0, 0, 0);
-            Cross.AddVertexAt(Cross.NumberOfVertices, new Point2d(pend.X, nodes.Datum), 0, 0, 0);
-            Cross.Closed = true;
-            return CreateRegionFromPolyline(Cross);
-        }
+                Ents.ToArray().ModifyBlock(nodes.Patok);
+            }
 
-        private static Hatch HatchEntity(Nodes nodes, Entity reg1, string hatchName, double angle, int colorIndex)
-        {
-            Hatch hatch = new Hatch();
-            hatch.SetHatchPattern(HatchPatternType.PreDefined, hatchName);
-            hatch.PatternAngle = angle;
-            hatch.HatchStyle = HatchStyle.Normal;
-            hatch.ColorIndex = colorIndex;
-            hatch.PatternScale = 1;
-            ObjectId[] x = new List<Entity>() { reg1 as Entity }.ToArray().ModifyBlock(nodes.Patok);
-            hatch.AppendLoop(HatchLoopTypes.Default, new ObjectIdCollection(x));
-            return hatch;
+            foreach (KeyValuePair<string, Point3d> item in Design)
+            {
+                if (structure.useBlock)
+                {
+                    if (currentSpace)
+                    {
+                        Dreambuild.AutoCAD.Draw.Insert(item.Key, item.Value);
+                    }
+                    else
+                    {
+                        InsertBlockToBlock(item.Key, nodes.Patok, item.Value);
+                    }
+                }
+
+            }
         }
 
         public void Draw(Nodes nodes)
@@ -516,7 +338,7 @@ namespace PLC
                         crossEntities.Add(rightExtension);
                         crossEntities.Add(DashLineHelper(nodes.Datum - 0.5, rightExtension.EndPoint.X, last.Elevation));
                         crossEntities.Add(LineLabelSeparator(nodes.Datum, rightExtension.EndPoint.X));
-                        crossEntities.Add(TextElevation(nodes.Datum - 0.5, last, rightExtension.EndPoint.X));
+                        crossEntities.Add(TextElevation(nodes.Datum - 0.5, last, rightExtension.EndPoint.X - 0.05));
                         crossEntities.Add(TextDistance(nodes.Datum - 1.5, lastInner, last, (rightExtension.EndPoint.X + lastInner.Distance) / 2));
                     }
                 }
@@ -531,7 +353,7 @@ namespace PLC
                     AlignmentPoint = new Point3d(nodes.Intersect_X, nodes.Datum - 3, 0)
                 };
 
-                Line CL = NoDraw.Line(new Point3d(nodes.Intersect_X, nodes.Datum, 0), new Point3d(nodes.Intersect_X, blo.EndPoint.Y, 0));
+                Line CL = NoDraw.Line(new Point3d(nodes.Intersect_X, nodes.Datum, 0), new Point3d(nodes.Intersect_X, nodes.Datum + 6, 0));
                 CL.Linetype = "DASHED";
 
                 DBText CLText = new DBText()
@@ -560,7 +382,15 @@ namespace PLC
                         }
                         else
                         {
-                            ElevationText = TextElevation(nodes.Datum - 0.5, node, null);
+                            Node prev = innerNodeLinked.Find(node).Previous.Value;
+                            if (node.Distance - prev.Distance < 0.25)
+                            {
+                                ElevationText = TextElevation(nodes.Datum - 0.5, node, node.Distance + 0.25);
+                            }
+                            else
+                            {
+                                ElevationText = TextElevation(nodes.Datum - 0.5, node, null);
+                            }
                         }
 
                         if (innerNodeLinked.Find(node).Next != null)
@@ -586,6 +416,16 @@ namespace PLC
                 double StartLabel = blo.StartPoint.X;
                 double EndLabel = bro.StartPoint.X;
 
+                ObjectId[] content = GetBlockContent("Block1");
+                Entity[] ents = content.QOpenForRead<Entity>();
+                Vector3d vec = new Point3d().GetVectorTo(new Point3d(StartLabel - 5.5, nodes.Datum - 2, 0));
+
+                foreach (Entity ent in ents)
+                {
+                    Entity entclone = ent.Clone() as Entity;
+                    entclone.TransformBy(Matrix3d.Displacement(vec));
+                    crossEntities.Add(entclone);
+                }
 
                 crossEntities.Add(CL);
                 crossEntities.Add(CLText);
@@ -599,9 +439,24 @@ namespace PLC
                 crossEntities.AddRange(InnerLines);
                 crossEntities.AddRange(Intersected);
                 crossEntities.ToArray().AddToBlock(nodes.Patok, nodes.AsPoint2d);
+
             }
 
 
+        }
+
+        public ObjectId Place(Nodes nodes)
+        {
+
+            ObjectId id = InsertBlock(nodes.Patok, positions[nodes.Patok].Point);
+            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.Database.TransactionManager.StartTransaction())
+            {
+                BlockReference blk = tr.GetObject(id, OpenMode.ForWrite) as BlockReference;
+                BlockTableRecord btr = tr.GetObject(blk.BlockTableRecord, OpenMode.ForWrite) as BlockTableRecord;
+                btr.SynchronizeAttributes();
+                tr.Commit();
+            }
+            return id;
         }
 
         private static void FilterSectionType(Nodes.Segments segment)
@@ -652,42 +507,15 @@ namespace PLC
             }
         }
 
-        private Point3dCollection GetIntersectionPoint(Line bli, List<Line> OutterLines)
+        private static Region DrawFlatCrossRegion(Nodes nodes)
         {
-            Point3dCollection InnerIntersections = new Point3dCollection();
-            foreach (Entity item in OutterLines)
-            {
-                Point3dCollection g1 = new Point3dCollection();
-
-                bli.IntersectWith(item, Intersect.OnBothOperands, g1, IntPtr.Zero, IntPtr.Zero);
-                foreach (Point3d gg1 in g1)
-                {
-                    InnerIntersections.Add(gg1);
-                }
-            }
-            return InnerIntersections;
-        }
-
-        private Point3dCollection GetIntersectionPoint(Line bli, Line bri, List<Line> OutterLines)
-        {
-            Point3dCollection InnerIntersections = new Point3dCollection();
-            foreach (Entity item in OutterLines)
-            {
-                Point3dCollection g1 = new Point3dCollection();
-                Point3dCollection g2 = new Point3dCollection();
-
-                bli.IntersectWith(item, Intersect.OnBothOperands, g1, IntPtr.Zero, IntPtr.Zero);
-                bri.IntersectWith(item, Intersect.OnBothOperands, g2, IntPtr.Zero, IntPtr.Zero);
-                foreach (Point3d gg1 in g1)
-                {
-                    InnerIntersections.Add(gg1);
-                }
-                foreach (Point3d gg2 in g2)
-                {
-                    InnerIntersections.Add(gg2);
-                }
-            }
-            return InnerIntersections;
+            Polyline Cross = NoDraw.Pline(ConvertP3DC2List(nodes.FlatNodePoint));
+            Point2d pstart = Cross.GetPoint2dAt(0);
+            Point2d pend = Cross.GetPoint2dAt(Cross.NumberOfVertices - 1);
+            Cross.AddVertexAt(0, new Point2d(pstart.X, nodes.Datum), 0, 0, 0);
+            Cross.AddVertexAt(Cross.NumberOfVertices, new Point2d(pend.X, nodes.Datum), 0, 0, 0);
+            Cross.Closed = true;
+            return CreateRegionFromPolyline(Cross);
         }
 
         private DBText TextDistance(double verticalPosition, Node node, Node next, double? horizontalPosition)
@@ -726,22 +554,6 @@ namespace PLC
             Line pembantu1 = NoDraw.Line(new Point3d(horizontal, elevation, 0), new Point3d(horizontal, datum, 0));
             pembantu1.Linetype = "DASHED";
             return pembantu1;
-        }
-
-        public bool Collinear(Line line, Point3d p)
-        {
-            double y1 = line.StartPoint.Y;
-            double y2 = line.EndPoint.Y;
-            double y3 = p.Y;
-            double x1 = line.StartPoint.X;
-            double x2 = line.EndPoint.X;
-            double x3 = p.X;
-            return Math.Abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= 1e-9;
-        }
-
-        public void Place(Nodes nodes)
-        {
-            InsertBlock(nodes.Patok, positions[nodes.Patok].Point);
         }
 
     }
