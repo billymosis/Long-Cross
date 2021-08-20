@@ -47,7 +47,7 @@ namespace PLC
                 List<Nodes> CrossData = new List<Nodes>();
                 if (isCrossOnly)
                 {
-                    CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
+                    CrossData = data.canal.nodes.Where(z => z.NodesType == NodesEnum.Cross).ToList();
                 }
 
                 foreach (Nodes item in CrossData)
@@ -106,19 +106,19 @@ namespace PLC
                     case "Cut":
                         foreach (Entity item in Regs)
                         {
-                            item.AddToCurrentSpace().SetLayer("Cut-Region");
+                            item.AddToCurrentSpace().SetLayer("CUT-REGION");
                         }
                         break;
                     case "Fill":
                         foreach (Entity item in Regs)
                         {
-                            item.AddToCurrentSpace().SetLayer("Fill-Region");
+                            item.AddToCurrentSpace().SetLayer("FILL-REGION");
                         }
                         break;
                     case "Both":
                         foreach (Entity item in Regs)
                         {
-                            item.AddToCurrentSpace().SetLayer("Both-Region");
+                            item.AddToCurrentSpace().SetLayer("BOTH-REGION");
                         }
                         break;
                 }
@@ -157,7 +157,7 @@ namespace PLC
                 List<Nodes> CrossData = new List<Nodes>();
                 if (isCrossOnly)
                 {
-                    CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
+                    CrossData = data.canal.nodes.Where(z => z.NodesType == NodesEnum.Cross).ToList();
                 }
 
                 foreach (Nodes item in CrossData)
@@ -185,13 +185,13 @@ namespace PLC
                             switch (key)
                             {
                                 case "Cut":
-                                    reg.Layer = "Cut-Region";
+                                    reg.Layer = "CUT-REGION";
                                     break;
                                 case "Fill":
-                                    reg.Layer = "Fill-Region";
+                                    reg.Layer = "FILL-REGION";
                                     break;
                                 case "Both":
-                                    reg.Layer = "Both-Region";
+                                    reg.Layer = "BOTH-REGION";
                                     break;
                                 default:
                                     break;
@@ -283,8 +283,8 @@ namespace PLC
                 {
                     return;
                 }
-                double Cut = GetRegionArea("Cut", id);
-                double Fill = GetRegionArea("Fill", id);
+                double Cut = GetRegionArea("CUT", id);
+                double Fill = GetRegionArea("FILL", id);
                 if (Cut > 0)
                 {
                     SetAttributes("GALIAN", Cut.ToString("N2"), id);
@@ -298,13 +298,13 @@ namespace PLC
 
         }
         [CommandMethod("ERA")]
-        public void ERA()
+        public static void ERA()
         {
             ObjectId[] ids = QuickSelection.SelectAll("INSERT");
             foreach (ObjectId blockID in ids)
             {
-                double Cut = GetRegionArea("Cut", blockID);
-                double Fill = GetRegionArea("Fill", blockID);
+                double Cut = GetRegionArea("CUT", blockID);
+                double Fill = GetRegionArea("FILL", blockID);
 
                 if (Cut > 0)
                 {

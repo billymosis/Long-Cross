@@ -19,8 +19,6 @@ namespace PLC
         public int TotalCrossNumber { get; set; }
         public int TotalCrossFix { get; set; }
         public Canal canal;
-        public List<DataCross> CrossDataCollection = new List<DataCross>();
-        public DataPlan DataPlan;
         public List<List<string>> LineData = new List<List<string>>();
         public bool JackVersion = false;
 
@@ -30,8 +28,6 @@ namespace PLC
             ReadData(this.FilePath);
             TotalDataLine = LineData.Count / 3;
             canal = GetNodeData();
-            GetCrossData();
-            GetPlanData();
         }
 
         public Canal GetNodeData()
@@ -48,6 +44,9 @@ namespace PLC
                 double x_base = double.Parse(CrossGroup[0][1]);
                 double y_base = double.Parse(CrossGroup[0][2]);
                 double z_base = double.Parse(CrossGroup[0][3]);
+                int structureCode = int.TryParse(CrossGroup[1][2], out structureCode) ? structureCode : 0;
+                Bangunan TipeBangunan = (Bangunan)structureCode;
+                string namaBangunan = CrossGroup[1][1];
 
                 List<double> Elevation = CrossGroup[0].GetRange(BATAS_KOLOM, CrossGroup[0].Count - BATAS_KOLOM).Where(x => !string.IsNullOrEmpty(x)).Select(x => double.Parse(x)).ToList();
                 List<double> Distance = CrossGroup[1].GetRange(BATAS_KOLOM, CrossGroup[1].Count - BATAS_KOLOM).Where(x => !string.IsNullOrEmpty(x)).Select(x => double.Parse(x)).ToList();
@@ -59,40 +58,13 @@ namespace PLC
                     Node a = new Node(Elevation[l], Distance[l], Description[l]);
                     mynode.AddLast(a);
                 }
-                Nodes nodes = new Nodes(x_base, y_base, z_base, mynode, patok);
+                Nodes nodes = new Nodes(x_base, y_base, z_base, mynode, patok, TipeBangunan, namaBangunan, Pengukuran.Tanggul);
                 canal.AddNodes(nodes);
 
             }
             canal.AngleCalculate();
             return canal;
         }
-
-        public void GetCrossData()
-        {
-            for (int i = 0; i < TotalDataLine; i++)
-            {
-                int j = 0 + i * 3;
-                int k = 3;
-                List<List<string>> CrossGroup = new List<List<string>>();
-                CrossGroup = LineData.GetRange(j, k);
-                DataCross cdx = new DataCross(CrossGroup);
-                if (!string.IsNullOrEmpty(cdx.NamaPatok))
-                {
-                    CrossDataCollection.Add(cdx);
-                    TotalCrossNumber++;
-                }
-                if (cdx.PatokSaja == false)
-                {
-                    TotalCrossFix++;
-                }
-            }
-        }
-
-        public void GetPlanData()
-        {
-            DataPlan = new DataPlan(this);
-        }
-
 
         public void ReadData(string p)
         {

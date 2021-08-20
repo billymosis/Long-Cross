@@ -75,43 +75,43 @@ namespace PLC
             ed.WriteMessage($"Global : {Global.counter.ToString()}");
         }
 
-        [CommandMethod("AW")]
-        public static void AW()
-        {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
-            Data d = new Data(s);
-            Plan x = new Plan(d);
+        //[CommandMethod("AW")]
+        //public static void AW()
+        //{
+        //    Document Doc = Application.DocumentManager.MdiActiveDocument;
+        //    Editor ed = Doc.Editor;
+        //    string s = @"E:/AutoCAD Project/Study2/Study2/data/Cross4.csv";
+        //    Data d = new Data(s);
+        //    Plan x = new Plan(d);
 
-            x.DrawPolygon();
-            for (int i = 0; i < d.TotalDataLine; i++)
-            {
-                x.DrawPlanCross(i);
-            }
-            HecRAS hec = new HecRAS(d.DataPlan);
-            List<XYZ> records = new List<XYZ>();
-            int k = 0;
-            foreach (Point3dCollection items in d.DataPlan.RAWSurfaceData)
-            {
-                int j = 0;
-                foreach (Point3d item in items)
-                {
-                    if (k < d.TotalDataLine)
-                    {
-                        records.Add(new XYZ { Id = j, Name = d.DataPlan.namaPatok[k], Description = d.DataPlan.descriptionList[k][j], X = item.X, Y = item.Y, Z = item.Z });
-                        j++;
-                    }
-                }
-                k++;
-            }
-            using (StreamWriter writer = new StreamWriter(GetDllPath() + @"\" + "XYZ.csv", false))
-            using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            {
-                csv.WriteRecords(records);
-            }
-            WriteFile(hec.GEORAS, "oke.geo");
-        }
+        //    x.DrawPolygon();
+        //    for (int i = 0; i < d.TotalDataLine; i++)
+        //    {
+        //        x.DrawPlanCross(i);
+        //    }
+        //    HecRAS hec = new HecRAS(d.DataPlan);
+        //    List<XYZ> records = new List<XYZ>();
+        //    int k = 0;
+        //    foreach (Point3dCollection items in d.DataPlan.RAWSurfaceData)
+        //    {
+        //        int j = 0;
+        //        foreach (Point3d item in items)
+        //        {
+        //            if (k < d.TotalDataLine)
+        //            {
+        //                records.Add(new XYZ { Id = j, Name = d.DataPlan.namaPatok[k], Description = d.DataPlan.descriptionList[k][j], X = item.X, Y = item.Y, Z = item.Z });
+        //                j++;
+        //            }
+        //        }
+        //        k++;
+        //    }
+        //    using (StreamWriter writer = new StreamWriter(GetDllPath() + @"\" + "XYZ.csv", false))
+        //    using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        //    {
+        //        csv.WriteRecords(records);
+        //    }
+        //    WriteFile(hec.GEORAS, "oke.geo");
+        //}
 
         public class XYZ
         {
@@ -124,95 +124,95 @@ namespace PLC
         }
 
 
-        [CommandMethod("DF")]
-        public static void Df()
-        {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
+        //[CommandMethod("DF")]
+        //public static void Df()
+        //{
+        //    Document Doc = Application.DocumentManager.MdiActiveDocument;
+        //    Editor ed = Doc.Editor;
 
 
-            OpenFileDialog OFD = new OpenFileDialog("Select Cross File", null, "csv; txt", "SelectCross", OpenFileDialog.OpenFileDialogFlags.AllowMultiple);
+        //    OpenFileDialog OFD = new OpenFileDialog("Select Cross File", null, "csv; txt", "SelectCross", OpenFileDialog.OpenFileDialogFlags.AllowMultiple);
 
-            OFD.ShowDialog();
-            string[] fileList = OFD.GetFilenames();
-            foreach (string path in fileList)
-            {
-                string s = path;
-                string directoryFolder = Path.GetDirectoryName(path);
-                string fileName = Path.GetFileNameWithoutExtension(path);
-                Data d = new Data(s);
-                Plan x = new Plan(d);
-                x.DrawPolygon();
-                for (int i = 0; i < d.TotalCrossNumber; i++)
-                {
-                    x.DrawPlanCross(i);
-                }
-            }
+        //    OFD.ShowDialog();
+        //    string[] fileList = OFD.GetFilenames();
+        //    foreach (string path in fileList)
+        //    {
+        //        string s = path;
+        //        string directoryFolder = Path.GetDirectoryName(path);
+        //        string fileName = Path.GetFileNameWithoutExtension(path);
+        //        Data d = new Data(s);
+        //        Plan x = new Plan(d);
+        //        x.DrawPolygon();
+        //        for (int i = 0; i < d.TotalCrossNumber; i++)
+        //        {
+        //            x.DrawPlanCross(i);
+        //        }
+        //    }
 
-        }
+        //}
 
-        [CommandMethod("PlanDraw")]
-        public static void PlanDraw()
-        {
-            Document Doc = Application.DocumentManager.MdiActiveDocument;
-            Editor ed = Doc.Editor;
-            PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ")
-            {
-                Filter = "Cross File (*.csv)|*.csv|" + "Cross File TXT Tab Delimeted(*.txt)|*.txt"
-            };
-            string path = ed.GetFileNameForOpen(POFO).StringResult;
-            string s = path;
-            string directoryFolder = Path.GetDirectoryName(path);
-            string fileName = Path.GetFileNameWithoutExtension(path);
-            Data d = new Data(s);
-            Plan x = new Plan(d);
-            x.DrawPolygon();
-            for (int i = 0; i < d.TotalCrossNumber; i++)
-            {
-                //if (Global.Licensed)
-                //{
-                //    x.DrawPlanCross(i);
-                //}
-                //else
-                //{
-                //    if (Global.counter.value > 0)
-                //    {
-                //        x.DrawPlanCross(i);
-                //        Global.AddCounter(-1);
-                //    }
-                //    else
-                //    {
-                //        Utilities.Bubble("Limit",$"You have reached your limit, trial will be reseted tomorrow at {DateTime.Now.AddDays(1).ToShortDateString()}.");
-                //    }
-                //}
-                x.DrawPlanCross(i);
+        //[CommandMethod("PlanDraw")]
+        //public static void PlanDraw()
+        //{
+        //    Document Doc = Application.DocumentManager.MdiActiveDocument;
+        //    Editor ed = Doc.Editor;
+        //    PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ")
+        //    {
+        //        Filter = "Cross File (*.csv)|*.csv|" + "Cross File TXT Tab Delimeted(*.txt)|*.txt"
+        //    };
+        //    string path = ed.GetFileNameForOpen(POFO).StringResult;
+        //    string s = path;
+        //    string directoryFolder = Path.GetDirectoryName(path);
+        //    string fileName = Path.GetFileNameWithoutExtension(path);
+        //    Data d = new Data(s);
+        //    Plan x = new Plan(d);
+        //    x.DrawPolygon();
+        //    for (int i = 0; i < d.TotalCrossNumber; i++)
+        //    {
+        //        //if (Global.Licensed)
+        //        //{
+        //        //    x.DrawPlanCross(i);
+        //        //}
+        //        //else
+        //        //{
+        //        //    if (Global.counter.value > 0)
+        //        //    {
+        //        //        x.DrawPlanCross(i);
+        //        //        Global.AddCounter(-1);
+        //        //    }
+        //        //    else
+        //        //    {
+        //        //        Utilities.Bubble("Limit",$"You have reached your limit, trial will be reseted tomorrow at {DateTime.Now.AddDays(1).ToShortDateString()}.");
+        //        //    }
+        //        //}
+        //        x.DrawPlanCross(i);
 
-            }
+        //    }
 
-            HecRAS hec = new HecRAS(d.DataPlan);
+        //    HecRAS hec = new HecRAS(d.DataPlan);
 
-            List<XYZ> records = new List<XYZ>();
-            int k = 0;
-            foreach (Point3dCollection items in d.DataPlan.RAWSurfaceData)
-            {
-                int j = 0;
-                foreach (Point3d item in items)
-                {
-                    if (k < d.TotalCrossNumber)
-                    {
-                        records.Add(new XYZ { Id = j, Name = d.DataPlan.namaPatok[k], Description = d.DataPlan.descriptionList[k][j], X = item.X, Y = item.Y, Z = item.Z });
-                        j++;
-                    }
-                }
-                k++;
-            }
-            using (StreamWriter writer = new StreamWriter(directoryFolder + @"\" + fileName + "_XYZ.csv", false))
-            using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            {
-                csv.WriteRecords(records);
-            }
-            WriteFile(hec.GEORAS, directoryFolder + @"\" + fileName + ".geo");
-        }
+        //    List<XYZ> records = new List<XYZ>();
+        //    int k = 0;
+        //    foreach (Point3dCollection items in d.DataPlan.RAWSurfaceData)
+        //    {
+        //        int j = 0;
+        //        foreach (Point3d item in items)
+        //        {
+        //            if (k < d.TotalCrossNumber)
+        //            {
+        //                records.Add(new XYZ { Id = j, Name = d.DataPlan.namaPatok[k], Description = d.DataPlan.descriptionList[k][j], X = item.X, Y = item.Y, Z = item.Z });
+        //                j++;
+        //            }
+        //        }
+        //        k++;
+        //    }
+        //    using (StreamWriter writer = new StreamWriter(directoryFolder + @"\" + fileName + "_XYZ.csv", false))
+        //    using (CsvWriter csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        //    {
+        //        csv.WriteRecords(records);
+        //    }
+        //    WriteFile(hec.GEORAS, directoryFolder + @"\" + fileName + ".geo");
+        //}
 
 
 

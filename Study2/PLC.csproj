@@ -102,6 +102,7 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
@@ -117,14 +118,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\controller\CrossCommand.cs" />
+    <Compile Include="src\controller\PlanCommand.cs" />
     <Compile Include="src\controller\StructureCommand.cs" />
     <Compile Include="src\lib\change_elevation\ChangeElevation.cs" />
     <Compile Include="src\lib\Command.cs" />
     <Compile Include="src\lib\cross\Cross.cs" />
-    <Compile Include="src\lib\data\DataCross.cs" />
     <Compile Include="src\lib\data\Data.cs" />
     <Compile Include="src\lib\data\DataKerusakan.cs" />
-    <Compile Include="src\lib\data\DataPlan.cs" />
     <Compile Include="src\lib\data\models\Canal.cs" />
     <Compile Include="src\lib\data\models\Node.cs" />
     <Compile Include="src\lib\data\models\Nodes.cs" />
@@ -229,6 +229,9 @@
       <Project>{3f080765-0af5-4083-92c4-93d194924bb3}</Project>
       <Name>EasyLicense.Lib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\lib\data\components\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

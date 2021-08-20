@@ -11,7 +11,8 @@ namespace PLC
     public class Canal
     {
         public LinkedList<Nodes> nodes = new LinkedList<Nodes>();
-        public Point3dCollection AlignmentNodes = new Point3dCollection();
+        public Dictionary<Point3d, double> AlignmentDictionary = new Dictionary<Point3d, double>();
+        public Point3dCollection PolygonNodes = new Point3dCollection();
         public string saluran;
         public Canal()
         {
@@ -25,6 +26,7 @@ namespace PLC
         {
             foreach (Nodes current in nodes)
             {
+
                 LinkedListNode<Nodes> currentNodes = nodes.Find(current);
                 Nodes next = currentNodes.Next == null ? current : currentNodes.Next.Value;
                 Nodes previous = currentNodes.Previous == null ? current : currentNodes.Previous.Value;
@@ -32,6 +34,9 @@ namespace PLC
                 double slopePrevious = Slope(current, previous);
                 double angleNext = Math.Atan(Reciprocal(slopeNext));
                 double angleBefore = Math.Atan(Reciprocal(slopePrevious));
+
+                current.station = current.PointPatok.DistanceTo(previous.PointPatok) + previous.station;
+
 
                 if (double.IsNaN(angleNext))
                 {
@@ -70,8 +75,10 @@ namespace PLC
                 current.angle = angleCurrent;
                 Point3d AlignmentPoint = PolarPoints(new Point3d(current.X_BASE, current.Y_BASE, current.Z_BASE), angleCurrent, current.Intersect_X);
                 AlignmentPoint = new Point3d(AlignmentPoint.X, AlignmentPoint.Y, current.Intersect_Y);
-                AlignmentNodes.Add(AlignmentPoint);
+                AlignmentDictionary.Add(AlignmentPoint, angleCurrent);
                 current.AsPoint = AlignmentPoint;
+
+                PolygonNodes.Add(current.PointPatok);
 
                 foreach (Node node in current.NodeList)
                 {
@@ -80,11 +87,14 @@ namespace PLC
                     node.X = CalculatedPoint.X;
                     node.Y = CalculatedPoint.Y;
                     node.Z = CalculatedPoint.Z;
-                    current.NodePoint.Add(CalculatedPoint);
+                    current.NodePoint.Add(new KeyValuePair<Point3d, string>(CalculatedPoint, node.Description));
                     current.FlatNodePoint.Add(node.Point2d);
                 }
+
+
             }
         }
+
 
         private double Slope(Nodes first, Nodes second)
         {

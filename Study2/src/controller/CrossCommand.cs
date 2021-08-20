@@ -6,6 +6,7 @@ using Autodesk.AutoCAD.Runtime;
 using Dreambuild.AutoCAD;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,11 +15,11 @@ namespace PLC.src.controller
 {
     public class CrossCommand
     {
+
         [CommandMethod("ExDraw")]
         public static void ExDraw()
         {
-            ProgressMeter pm = new ProgressMeter();
-            pm.Start("Processing...");
+
             const bool isCrossOnly = true;
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;
@@ -37,37 +38,39 @@ namespace PLC.src.controller
             Data data = new Data(s);
             Cross x = new Cross(data.canal);
 
-
             List<Nodes> CrossData = new List<Nodes>();
             if (isCrossOnly)
             {
-                CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
+                CrossData = data.canal.nodes.Where(z => z.NodesType == NodesEnum.Cross).ToList();
             }
 
-            pm.SetLimit(CrossData.Count());
+            ProgressMeter pm = new ProgressMeter();
+            pm.Start("Processing...");
+            pm.SetLimit(CrossData.Count);
             foreach (Nodes item in CrossData)
             {
                 if (item.ValidCross)
                 {
+                    System.Windows.Forms.Application.DoEvents();
                     pm.MeterProgress();
                     DeleteBlock(item);
-                    x.Draw(item);
+                    x.DrawCross(item);
                     x.Place(item);
                 }
-                else
-                {
-                    ed.WriteMessage("Error Cross: " + item.Patok + " Distance data is not ordered in sequence \n");
-                }
-
             }
             pm.Stop();
             ed.Regen();
+            data.canal.nodes.Select(z => z.errorList).ForEach(n => ed.WriteMessage(n));
         }
 
+
+
         [CommandMethod("DeDraw")]
-        public static void DeDraw()
+        public void DeDraw()
         {
             ProgressMeter pm = new ProgressMeter();
+            Print("Starting Drawing and Calculating Structure");
+
             pm.Start("Processing...");
             const bool isCrossOnly = true;
             Document Doc = Application.DocumentManager.MdiActiveDocument;
@@ -90,7 +93,7 @@ namespace PLC.src.controller
             List<Nodes> CrossData = new List<Nodes>();
             if (isCrossOnly)
             {
-                CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
+                CrossData = data.canal.nodes.Where(z => z.NodesType == NodesEnum.Cross).ToList();
             }
 
             pm.SetLimit(CrossData.Count());
@@ -98,9 +101,8 @@ namespace PLC.src.controller
             {
                 if (item.ValidCross)
                 {
+                    System.Windows.Forms.Application.DoEvents();
                     pm.MeterProgress();
-
-
                     Point3d CENTER_DESGIN_POINT = item.AsPoint2d;
                     Point3d design1 = new Point3d(CENTER_DESGIN_POINT.X - 10, CENTER_DESGIN_POINT.Y + 1, 0);
                     Point3d design2 = new Point3d(CENTER_DESGIN_POINT.X + 10, CENTER_DESGIN_POINT.Y + 1, 0);
@@ -110,24 +112,19 @@ namespace PLC.src.controller
                     {
                         { "RightWall", design2 },
                         { "LeftWall", design1 },
-                        { "B10", design3 }
+                        { "S10", design3 }
                     };
 
                     Structure y = new Structure(DummyDesign);
 
                     x.DrawStructure(item, y, false, EarthWorks.Both);
-
                 }
-                else
-                {
-                    ed.WriteMessage("Error Cross: " + item.Patok + " Distance data is not ordered in sequence \n");
-                }
-
             }
-            
 
             pm.Stop();
             ed.Regen();
+            StructureCommand.ERA();
+            data.canal.nodes.Select(z => z.errorList).ForEach(n => ed.WriteMessage(n));
         }
 
 
@@ -158,7 +155,7 @@ namespace PLC.src.controller
             List<Nodes> CrossData = new List<Nodes>();
             if (isCrossOnly)
             {
-                CrossData = data.canal.nodes.Where(z => z.NodesType == Nodes.NodesEnum.Cross).ToList();
+                CrossData = data.canal.nodes.Where(z => z.NodesType == NodesEnum.Cross).ToList();
             }
 
             pm.SetLimit(CrossData.Count());
@@ -179,14 +176,14 @@ namespace PLC.src.controller
                     {
                         { "RightWall", design2 },
                         { "LeftWall", design1 },
-                        { "B10", design3 },
+                        { "S10", design3 },
                         //{ "FillKanan", design4 }
                     };
 
                     Structure y = new Structure(DummyDesign);
 
                     DeleteBlock(item);
-                    x.Draw(item);
+                    x.DrawCross(item);
                     x.Place(item);
 
 
@@ -201,6 +198,7 @@ namespace PLC.src.controller
             pm.Stop();
             ed.Regen();
         }
+
 
     }
 }

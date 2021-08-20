@@ -27,9 +27,9 @@ namespace PLC
             Database db = doc.Database;
             Editor ed = doc.Editor;
             Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage("Billy Plugin");
-            CreateLayer("Cut-Region", 1);
-            CreateLayer("Fill-Region", 2);
-            CreateLayer("Both-Region", 3);
+            CreateLayer("CUT-REGION", 1);
+            CreateLayer("FILL-REGION", 2);
+            CreateLayer("BOTH-REGION", 3);
             //CanalCADTray();
 
             //Global.CheckLicense = new PLC.Licensing.CheckLicense();

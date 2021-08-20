@@ -1,6 +1,6 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at 79FB7020h
+FATAL ERROR:  Unhandled Access Violation Reading 0x0008 Exception at DCE1B0FCh
 
-08/16/2021 at 23:19:42.000  Drawing: Drawing1.dwg
+08/17/2021 at 09:42:14.000  Drawing: Drawing1.dwg
 -------------

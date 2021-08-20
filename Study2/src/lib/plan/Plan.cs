@@ -2,8 +2,10 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Dreambuild.AutoCAD;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using static PLC.Utilities;
 
 
@@ -11,126 +13,228 @@ namespace PLC
 {
     public class Plan
     {
+
+
         private readonly Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+        private readonly ObjectId LABEL_STYLE = DbHelper.GetTextStyleId("L80");
         public int Start { get; set; }
         public int End { get; set; }
+        private readonly Canal data;
+        private Dictionary<int, ObjectId> Structures = new Dictionary<int, ObjectId>();
 
-
-        public List<string> namaPatok = new List<string>();
-        public List<string> descriptionList = new List<string>();
-        public Data myData;
-
-        public Plan(Data d)
+        public Plan(Canal data)
         {
-            myData = d;
-        }
+            CreateLayer("TEXT-ELEVATION-TANGGUL", 1);
+            CreateLayer("BREAK-LINE-TANGGUL", 1);
+            CreateLayer("BREAK-LINE-DASAR", 2);
+            CreateLayer("TEXT-ELEVATION-DASAR", 2);
+            CreateLayer("TEXT-ELEVATION-PATOK", 3);
+            CreateLayer("TEXT-ELEVATION-ALIGNMENT", 4);
+            CreateLayer("TEXT-ELEVATION", 5);
+            CreateLayer("TEXT-PATOK", 6);
+            this.data = data;
 
-
-        public void DrawPlanCross(int index)
-        {
-            DataPlan DP = myData.DataPlan;
-            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            for (int i = 1; i < 20; i++)
             {
-                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
-                {
-                    using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
-                    {
-                        using (DBText tx = new DBText())
-                        {
-                            tx.Position = DP.PatokPoint[index];
-                            tx.TextString = DP.namaPatok[index];
-                            btr.AppendEntity(tx);
-                        }
-
-
-                        for (int i = 0; i < DP.RAWSurfaceData[index].Count; i++)
-                        {
-                            using (DBText tx = new DBText())
-                            {
-                                tx.Position = DP.RAWSurfaceData[index][i];
-                                tx.TextString = DP.descriptionList[index][i];
-                                btr.AppendEntity(tx);
-                            }
-                        }
-
-                        //HEC-RAS 2d PolyLine
-
-                        //using (Polyline PL = new Polyline())
-                        //{
-                        //    Point2d coordinateTanggulKiri2D = ConvertPoint2d(Cross[Patok.TanggulKiriIndex]);
-                        //    Point2d coordinateTanggulKanan2D = ConvertPoint2d(Cross[Patok.TanggulKananIndex]);
-                        //    Point2d midPoint = GetMidPoint(coordinateTanggulKiri2D, coordinateTanggulKanan2D);
-                        //    // OPTIONAL Point2d midPoint = ConvertPoint2d(AlignmentPoint)
-                        //    PL.AddVertexAt(0, coordinateTanggulKiri2D, 0, 0, 0);
-                        //    PL.AddVertexAt(1, coordinateTanggulKanan2D, 0, 0, 0);
-                        //    btr.AppendEntity(PL);
-
-                        //};
-
-                        //CROSS SECTION
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.RAWSurfaceData[index], false))
-                        {
-                            btr.AppendEntity(PL);
-                        };
-                    }
-                }
-                tr.Commit();
+                Structures.Add(i, GetBlockID("B" + i));
             }
 
         }
 
 
-        /// <summary>
-        /// Plot Poligon tiap Patok, As Canal/ Aligment, Tanggul Kiri, Tanggul Kanan, Dasar Kiri, Dasar Kanan.
-        /// Index adalah Plot sampai patok ke berapa.
-        /// </summary>
-        public void DrawPolygon()
+        public void DrawPlan(bool ValidCrossOnly)
         {
-            DataPlan DP = myData.DataPlan;
-            using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
+            List<Entity> PlanEntities = new List<Entity>();
+            List<Entity> Alignment = DrawAlignment(data);
+            List<Entity> Polygon = DrawPolygon(data);
+            LinkedList<Nodes> d = new LinkedList<Nodes>();
+            if (ValidCrossOnly)
             {
-                using (BlockTable bt = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.BlockTableId, OpenMode.ForRead) as BlockTable)
-                {
-                    using (BlockTableRecord btr = tr.GetObject(Application.DocumentManager.MdiActiveDocument.Database.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord)
-                    {
-
-                        // ALIGNMENT ADALAH KOORDINAT MID POINT
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointAlignment, false))
-                        {
-                            PL.ColorIndex = 1;
-                            btr.AppendEntity(PL);
-                        };
-
-                        // P3DC ADALAH KOORDINAT PATOK
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PatokPoint, false))
-                        {
-                            PL.ColorIndex = 2;
-                            btr.AppendEntity(PL);
-                        };
-                        
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointTanggulKiri, false))
-                        {
-                            btr.AppendEntity(PL);
-                        };
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointTanggulKanan, false))
-                        {
-                            btr.AppendEntity(PL);
-                        };
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointDasarKiri, false))
-                        {
-                            btr.AppendEntity(PL);
-                        };
-                        using (Polyline3d PL = new Polyline3d(Poly3dType.SimplePoly, DP.PointDasarKanan, false))
-                        {
-                            btr.AppendEntity(PL);
-                        };
-
-                    }
-                }
-                tr.Commit();
+                d = new LinkedList<Nodes>(data.nodes.Where(z => z.ValidCross == true).ToList());
             }
+            else
+            {
+                d = new LinkedList<Nodes>(data.nodes.ToList());
+            }
+            List<Entity> Cross = DrawCross(d);
+            List<Entity> T1 = DrawTanggulDasar(data);
+            List<Entity> S = DrawStructure(data);
+
+            PlanEntities.AddRange(Alignment);
+            PlanEntities.AddRange(Polygon);
+            PlanEntities.AddRange(Cross);
+            PlanEntities.AddRange(T1);
+            PlanEntities.AddRange(S);
+            PlanEntities.AddToCurrentSpace();
         }
 
+        private List<Entity> DrawAlignment(Canal data)
+        {
+            List<Entity> AlignmentEntities = new List<Entity>();
+            Polyline alignment = NoDraw.Pline(data.AlignmentDictionary.Keys);
+            foreach (KeyValuePair<Point3d, double> item in data.AlignmentDictionary)
+            {
+                if (item.Key.Z != 0)
+                {
+                    DBText mid = new DBText()
+                    {
+                        Rotation = item.Value + (Math.PI / 2),
+                        TextString = item.Key.Z.ToString("N2"),
+                        Justify = AttachmentPoint.MiddleCenter,
+                        AlignmentPoint = item.Key.Flatten(),
+                        Height = 4,
+                        TextStyleId = LABEL_STYLE,
+                        Layer = "TEXT-ELEVATION-ALIGNMENT"
+
+                    };
+                    AlignmentEntities.Add(mid);
+                }
+
+            }
+            AlignmentEntities.Add(alignment);
+            return AlignmentEntities;
+
+        }
+
+        private static List<Entity> DrawPolygon(Canal data)
+        {
+            List<Entity> PolygonEntities = new List<Entity>();
+            Polyline polygon = NoDraw.Pline(ConvertP3DC2List(data.PolygonNodes));
+            polygon.Linetype = "DASHDOT";
+            foreach (Point3d item in data.PolygonNodes)
+            {
+                Circle circle = NoDraw.Circle(item, 1);
+                PolygonEntities.Add(circle);
+            }
+            PolygonEntities.Add(polygon);
+            return PolygonEntities;
+        }
+
+        private static List<Entity> DrawTanggulDasar(Canal data)
+        {
+            List<Entity> PolygonEntities = new List<Entity>();
+            foreach (Nodes current in data.nodes)
+            {
+                LinkedListNode<Nodes> currentNodes = data.nodes.Find(current);
+                Nodes next = currentNodes.Next?.Value;
+
+                if (next != null)
+                {
+                    IEnumerable<KeyValuePair<Point3d, string>> tc = current.NodePoint.Where(x => x.Value.Contains("T1"));
+                    IEnumerable<KeyValuePair<Point3d, string>> dc = current.NodePoint.Where(x => x.Value.Contains("D1"));
+                    IEnumerable<KeyValuePair<Point3d, string>> tn = next.NodePoint.Where(x => x.Value.Contains("T1"));
+                    IEnumerable<KeyValuePair<Point3d, string>> dn = next.NodePoint.Where(x => x.Value.Contains("D1"));
+                    if (tc.Count() % 2 == 0 && tn.Count() % 2 == 0 && tc.Count() > 0 && tn.Count() > 0)
+                    {
+                        Point3d cf = tc.First().Key;
+                        Point3d cl = tc.Last().Key;
+                        Point3d nf = tn.First().Key;
+                        Point3d nl = tn.Last().Key;
+                        Line l = NoDraw.Line(cf, nf);
+                        Line ll = NoDraw.Line(cl, nl);
+                        l.Layer = "BREAK-LINE-TANGGUL";
+                        ll.Layer = "BREAK-LINE-TANGGUL";
+                        PolygonEntities.Add(l);
+                        PolygonEntities.Add(ll);
+                    }
+
+                    if (dc.Count() % 2 == 0 && dn.Count() % 2 == 0 && dc.Count() > 0 && dn.Count() > 0)
+                    {
+                        Point3d cf = dc.First().Key;
+                        Point3d cl = dc.Last().Key;
+                        Point3d nf = dn.First().Key;
+                        Point3d nl = dn.Last().Key;
+                        Line l = NoDraw.Line(cf, nf);
+                        Line ll = NoDraw.Line(cl, nl);
+                        l.Layer = "BREAK-LINE-DASAR";
+                        ll.Layer = "BREAK-LINE-DASAR";
+                        PolygonEntities.Add(l);
+                        PolygonEntities.Add(ll);
+                    }
+
+                }
+            }
+            return PolygonEntities;
+        }
+
+        private List<Entity> DrawStructure(Canal data)
+        {
+            List<Entity> StructureEntities = new List<Entity>();
+            foreach (Nodes item in data.nodes)
+            {
+                if (item.StructureType != Bangunan.NoStructure)
+                {
+                    BlockReference x = NoDraw.Insert(Structures[(int)item.StructureType], item.AsPoint.Flatten(), item.angle + (Math.PI / 2));
+                    x.Layer = "BANGUNAN";
+                    StructureEntities.Add(x);
+                }
+                
+                
+            }
+
+            return StructureEntities;
+        }
+
+        private List<Entity> DrawCross(LinkedList<Nodes> data)
+        {
+            List<Entity> CrossEntities = new List<Entity>();
+            foreach (Nodes item in data)
+            {
+                Line crossline = NoDraw.Line(item.NodePoint.First().Key.Flatten(), item.NodePoint.Last().Key.Flatten());
+                crossline.Linetype = "DASHED";
+                crossline.LinetypeScale = 20;
+                Vector3d vec = crossline.Delta.GetNormal() * 20;
+                crossline.StartPoint = crossline.StartPoint - vec;
+                foreach (Node val in item.NodeList)
+                {
+                    DBText patok = new DBText()
+                    {
+                        Rotation = item.angle + (Math.PI / 2),
+                        TextString = item.Patok,
+                        Justify = AttachmentPoint.BaseCenter,
+                        AlignmentPoint = new Point3d(crossline.StartPoint.X - 2, crossline.StartPoint.Y + 2, 0),
+                        Height = 4,
+                        TextStyleId = LABEL_STYLE,
+                        Layer = "TEXT-PATOK"
+
+                    };
+                    CrossEntities.Add(patok);
+
+                    DBText desc = new DBText()
+                    {
+                        Rotation = item.angle + (Math.PI / 2),
+                        TextString = val.Elevation.ToString("N2"),
+                        Justify = AttachmentPoint.MiddleCenter,
+                        AlignmentPoint = val.Point3d.Flatten(),
+                        Height = 4,
+                        TextStyleId = LABEL_STYLE
+                    };
+
+                    if (val.Description.Contains("T"))
+                    {
+                        desc.Layer = "TEXT-ELEVATION-TANGGUL";
+                    }
+                    else if (val.Description.Contains("D"))
+                    {
+                        desc.Layer = "TEXT-ELEVATION-DASAR";
+                    }
+                    else if (val.Distance == 0)
+                    {
+                        desc.Layer = "TEXT-ELEVATION-PATOK";
+                    }
+                    else
+                    {
+                        desc.Layer = "TEXT-ELEVATION";
+                    }
+                    CrossEntities.Add(desc);
+
+                }
+                CrossEntities.Add(crossline);
+
+
+            }
+            return CrossEntities;
+        }
     }
 
 }

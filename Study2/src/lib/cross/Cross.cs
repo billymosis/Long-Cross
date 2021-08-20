@@ -47,14 +47,14 @@ namespace PLC
 
         public Cross(Canal data)
         {
-            CreateLayer("Cut", 1);
-            CreateLayer("Fill", 2);
+            CreateLayer("CUT", 1);
+            CreateLayer("FILL", 2);
             this.data = data;
             int row = 0;
             int column = 0;
             data.nodes.ToList().ForEach(x =>
             {
-                if (x.NodesType == Nodes.NodesEnum.Cross)
+                if (x.NodesType == NodesEnum.Cross)
                 {
                     positions.Add(x.Patok, new Positions(new Point3d(COLUMN_SPACE_HORIZONTAL * column, -COLUMN_SPACE_VERTICAL * (row % ROW_AMOUNT), 0), row, column));
                     row++;
@@ -89,7 +89,7 @@ namespace PLC
                     case EarthWorks.Cut:
                         foreach (Entity region in GetCutRegion(cross, item.Key, item.Value))
                         {
-                            if (region.Layer == "Cut-Region")
+                            if (region.Layer == "CUT-REGION")
                             {
                                 crossEntities.Add(region, EarthWorks.Cut);
                             }
@@ -98,21 +98,21 @@ namespace PLC
                     case EarthWorks.Fill:
                         foreach (Entity region in GetFillRegion(cross, item.Key, item.Value))
                         {
-                            if (region.Layer == "Fill-Region")
+                            if (region.Layer == "FILL-REGION")
                             {
                                 crossEntities.Add(region, EarthWorks.Fill);
                             }
                         }
                         break;
                     case EarthWorks.Both:
-                        if (Layer == "Both-Region" || Layer == "Cut-Region")
+                        if (Layer == "BOTH-REGION" || Layer == "CUT-REGION")
                         {
                             foreach (Entity region in GetCutRegion(cross, item.Key, item.Value))
                             {
                                 crossEntities.Add(region, EarthWorks.Cut);
                             }
                         }
-                        if (Layer == "Both-Region" || Layer == "Fill-Region")
+                        if (Layer == "BOTH-REGION" || Layer == "FILL-REGION")
                         {
                             foreach (Entity region in GetFillRegion(cross, item.Key, item.Value))
                             {
@@ -140,12 +140,12 @@ namespace PLC
                     {
                         case EarthWorks.Cut:
                             ObjectId x = item.Key.AddToCurrentSpace();
-                            x.SetLayer("Cut");
+                            x.SetLayer("CUT");
                             Cobject.Add(x);
                             break;
                         case EarthWorks.Fill:
                             ObjectId y = item.Key.AddToCurrentSpace();
-                            y.SetLayer("Fill");
+                            y.SetLayer("FILL");
                             Fobject.Add(y);
                             break;
                         default:
@@ -171,12 +171,12 @@ namespace PLC
                     switch (item.Value)
                     {
                         case EarthWorks.Cut:
-                            item.Key.Layer = "Cut";
-                            Ents.Add(HatchEntity(nodes, item.Key, "ANSI31", ConvertDegreesToRadians(135), "Cut"));
+                            item.Key.Layer = "CUT";
+                            Ents.Add(HatchEntity(nodes, item.Key, "ANSI31", ConvertDegreesToRadians(135), "CUT"));
                             break;
                         case EarthWorks.Fill:
-                            item.Key.Layer = "Fill";
-                            Ents.Add(HatchEntity(nodes, item.Key, "ANSI31", ConvertDegreesToRadians(45), "Fill"));
+                            item.Key.Layer = "FILL";
+                            Ents.Add(HatchEntity(nodes, item.Key, "ANSI31", ConvertDegreesToRadians(45), "FILL"));
                             break;
                         default:
                             break;
@@ -203,9 +203,9 @@ namespace PLC
             }
         }
 
-        public void Draw(Nodes nodes)
+        public void DrawCross(Nodes nodes)
         {
-            if (nodes.NodesType == Nodes.NodesEnum.Cross)
+            if (nodes.NodesType == NodesEnum.Cross)
             {
                 List<Entity> crossEntities = new List<Entity>();
                 double boundXl = nodes.Intersect_X - (BOUNDARY_WIDTH / 2);
@@ -235,7 +235,7 @@ namespace PLC
                 bool cutLeft = false;
                 bool cutRight = false;
 
-                foreach (Nodes.Segments segment in nodes.segments)
+                foreach (Segments segment in nodes.segments)
                 {
                     FilterSectionType(segment);
                     FilterSectionPosition(nodes, bli, bri, blo, bro, innerNode, outterNode, InnerLines, OutterLines, segment);
@@ -342,7 +342,6 @@ namespace PLC
                         crossEntities.Add(TextDistance(nodes.Datum - 1.5, lastInner, last, (rightExtension.EndPoint.X + lastInner.Distance) / 2));
                     }
                 }
-
 
                 DBText patok = new DBText()
                 {
@@ -459,17 +458,17 @@ namespace PLC
             return id;
         }
 
-        private static void FilterSectionType(Nodes.Segments segment)
+        private static void FilterSectionType(Segments segment)
         {
             switch (segment.sectionTypes)
             {
-                case Nodes.SectionType.Jalan:
+                case SectionType.Jalan:
                     segment.Lines.ColorIndex = 1;
                     break;
-                case Nodes.SectionType.Normal:
+                case SectionType.Normal:
                     segment.Lines.ColorIndex = 3;
                     break;
-                case Nodes.SectionType.Lining:
+                case SectionType.Lining:
                     segment.Lines.ColorIndex = 2;
                     break;
                 default:
@@ -477,7 +476,7 @@ namespace PLC
             }
         }
 
-        private static void FilterSectionPosition(Nodes nodes, Line bli, Line bri, Line blo, Line bro, List<Node> innerNode, List<Node> outterNode, List<Line> InnerLines, List<Line> OutterLines, Nodes.Segments segment)
+        private static void FilterSectionPosition(Nodes nodes, Line bli, Line bri, Line blo, Line bro, List<Node> innerNode, List<Node> outterNode, List<Line> InnerLines, List<Line> OutterLines, Segments segment)
         {
             Line line = segment.Lines as Line;
             if (line.EndPoint.X >= bri.StartPoint.X && line.EndPoint.X <= bro.StartPoint.X && segment.Section == nodes.segments.Count - 1)

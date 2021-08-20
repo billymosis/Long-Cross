@@ -461,6 +461,12 @@ namespace PLC
             return y;
         }
 
+        public static Point3d Flatten(this Point3d x)
+        {
+            return new Point3d(x.X, x.Y, 0);
+        }
+
+
         public static void Print(string msg)
         {
             Document Doc = Application.DocumentManager.MdiActiveDocument;
@@ -823,14 +829,16 @@ namespace PLC
                 LinetypeTable acLineTypTbl;
                 acLineTypTbl = acTrans.GetObject(acCurDb.LinetypeTableId,
                                                     OpenMode.ForRead) as LinetypeTable;
-
-                string sLineTypName = "DASHED";
-
-                if (acLineTypTbl.Has(sLineTypName) == false)
+                string[] linetypes = {"DASHED", "DASHDOT" };
+                foreach (string sLineTypName in linetypes)
                 {
-                    // Load the Center Linetype
-                    acCurDb.LoadLineTypeFile(sLineTypName, "acad.lin");
+                    if (acLineTypTbl.Has(sLineTypName) == false)
+                    {
+                        // Load the Center Linetype
+                        acCurDb.LoadLineTypeFile(sLineTypName, "acad.lin");
+                    }
                 }
+
 
                 // Save the changes and dispose of the transaction
                 acTrans.Commit();

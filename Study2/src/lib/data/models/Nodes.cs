@@ -10,7 +10,71 @@ using System.Threading.Tasks;
 using static PLC.Utilities;
 namespace PLC
 {
+    public enum NodesEnum
+    {
+        Patok,
+        Cross
+    }
 
+    public enum SectionType
+    {
+        Jalan,
+        Normal,
+        Lining,
+    }
+    public class Segments
+    {
+        public Line Lines;
+        public int Section;
+        public SectionType sectionTypes;
+        public Node[] nodes;
+
+        public Segments(Line lines, int section, SectionType sectionTypes, Node[] nodes)
+        {
+            this.nodes = nodes;
+            Lines = lines;
+            Section = section;
+            this.sectionTypes = sectionTypes;
+        }
+    }
+
+    public enum Bangunan
+    {
+        NoStructure = 0,
+        Bendung = 1,
+        Bagi = 2,
+        Sadap = 3,
+        Terjun = 4,
+        GrPembawa = 5,
+        GrPembuang = 6,
+        Jembatan = 7,
+        Talang = 8,
+        Siphon = 9,
+        GotMiring = 10,
+        PelimpahSamping = 11,
+        BoxTersier = 12,
+        BoxKwarter = 13,
+        JembatanOrg = 14,
+        TempatCuci = 15,
+        TempatMandiHewan = 16,
+        AlurPembuang = 17,
+        BangunanUkur = 18,
+        Suplesi = 19,
+        BangunanPembuang = 20
+    }
+
+    public enum Pengukuran
+    {
+        Tanggul,
+        Dasar
+    }
+
+    public enum ErrorType
+    {
+        DistanceNotOrdered,
+        TanggulDasarError,
+        WrongInput
+    }
 
     public class Nodes
     {
@@ -33,47 +97,36 @@ namespace PLC
         public double Maximum_Elevation;
         public double Datum;
         public double angle;
+        public double station;
         public NodesEnum NodesType;
+        public Bangunan StructureType;
+        public ErrorType errorType;
+        public string NamaBangunan;
         public string Patok;
         public LinkedList<Node> NodeList = new LinkedList<Node>();
         public Point3d AsPoint = new Point3d();
         public Point3d AsPoint2d = new Point3d();
-        public Point3dCollection NodePoint = new Point3dCollection();
+        public List<KeyValuePair<Point3d, string>> NodePoint = new List<KeyValuePair<Point3d, string>>();
         public Point3dCollection FlatNodePoint = new Point3dCollection();
         public List<Segments> segments = new List<Segments>();
         public bool ValidCross = false;
-        public enum NodesEnum
-        {
-            Patok,
-            Cross
-        }
+        public Point3d PointPatok = new Point3d();
+        public string errorList;
 
-        public enum SectionType
+        public Nodes(double x_base, double y_base, double z_base, LinkedList<Node> _nodes, string _patok, Bangunan bangunan, string namaBangunan, Pengukuran pengukuran)
         {
-            Jalan,
-            Normal,
-            Lining,
-        }
-        public class Segments
-        {
-            public Line Lines;
-            public int Section;
-            public SectionType sectionTypes;
-            public Node[] nodes;
-
-            public Segments(Line lines, int section, SectionType sectionTypes, Node[] nodes)
+            string pengukuranValue = "";
+            switch (pengukuran)
             {
-                this.nodes = nodes;
-                Lines = lines;
-                Section = section;
-                this.sectionTypes = sectionTypes;
+                case Pengukuran.Tanggul:
+                    pengukuranValue = "T";
+                    break;
+                case Pengukuran.Dasar:
+                    pengukuranValue = "D";
+                    break;
+                default:
+                    break;
             }
-        }
-
-
-
-        public Nodes(double x_base, double y_base, double z_base, LinkedList<Node> _nodes, string _patok)
-        {
             if (_nodes.Count == 1)
             {
                 NodesType = NodesEnum.Patok;
@@ -82,46 +135,43 @@ namespace PLC
             {
                 NodesType = NodesEnum.Cross;
                 List<double> Distances = new List<double>();
+                List<double> Elevation = new List<double>();
+                List<string> Description = new List<string>();
                 foreach (Node item in _nodes)
                 {
                     Distances.Add(item.Distance);
+                    Elevation.Add(item.Elevation);
+                    Description.Add(item.Description);
                 }
-                ValidCross = Distances.IsOrdered();
-                //foreach (Node item in _nodes)
-                //{
+                bool condition1 = Distances.IsOrdered();
+                bool condition2 = Distances.Count == Elevation.Count && Distances.Count == Description.Count && Elevation.Count == Distances.Count;
+                bool condition3 = Description.Where(x => x.Contains("T")).Count() % 2 == 0 && Description.Where(x => x.Contains("D")).Count() % 2 == 0;
+                ValidCross = condition1 && condition2 && condition3;
+                if (!condition1)
+                {
+                    errorType = ErrorType.DistanceNotOrdered;
+                    errorList = ("Error Cross: " + _patok + " Data jarak tidak berurutan dari lebih kecil dari kiri ke kanan \n");
+                }
+                if (!condition2)
+                {
+                    errorType = ErrorType.WrongInput;
+                    errorList = ("Error Cross: " + _patok + " Terdapat titik yang salah antara distance,elevation dan description \n");
+                }
+                if (!condition3)
+                {
+                    errorType = ErrorType.TanggulDasarError;
+                    errorList = ("Error Cross: " + _patok + " Jumlah [T]anggul / [D]asar tidak genap, tidak bisa mendapatkan nilai interploasi \n");
 
-                //    if (_nodes.Find(item).Next != null)
-                //    {
-                //        Node prev = _nodes.Find(item).Next.Previous.Value;
-                //        if (item.Distance >= prev.Distance)
-                //        {
-                //            ValidCross = true;
-                //        }
-                //        else
-                //        {
-                //            break;
-                //        }
-                //    }
-                //    else if (_nodes.Find(item).Next != null && _nodes.Find(item).Previous != null)
-                //    {
-                //        Node next = _nodes.Find(item).Next.Value;
-                //        Node prev = _nodes.Find(item).Next.Previous.Value;
-                //        if (item.Distance >= prev.Distance && item.Distance <= next.Distance)
-                //        {
-                //            ValidCross = true;
-                //        }
-                //        else
-                //        {
-                //            break;
-                //        }
-                //    }
-                //}
+                }
             }
 
+            StructureType = bangunan;
+            NamaBangunan = namaBangunan;
 
             X_BASE = x_base;
             Y_BASE = y_base;
             Z_BASE = z_base;
+            PointPatok = new Point3d(X_BASE, Y_BASE, Z_BASE);
             Patok = _patok;
             NodeList = _nodes;
             Lowest_Elevation = LowestElevation(_nodes);
@@ -131,19 +181,16 @@ namespace PLC
                 case NodesEnum.Patok:
                     break;
                 case NodesEnum.Cross:
-                    Node first_base = NodeList.Where(x => x.Description.Contains('D')).First();
-                    Node last_base = NodeList.Where(x => x.Description.Contains('D')).Last();
+                    Node first_base = NodeList.Where(x => x.Description.Contains(pengukuranValue)).First();
+                    Node last_base = NodeList.Where(x => x.Description.Contains(pengukuranValue)).Last();
 
                     Mid_Horizontal = (first_base.Distance + last_base.Distance) / 2;
-                    Point2d IntersectionPoint = FindIntersection2d
-                        (
-                        new Point2d(first_base.Distance, first_base.Elevation),
-                        new Point2d(last_base.Distance, last_base.Elevation),
-                        new Point2d(Mid_Horizontal, Maximum_Elevation),
-                        new Point2d(Mid_Horizontal, Lowest_Elevation)
-                        );
-                    Intersect_X = IntersectionPoint.X;
-                    Intersect_Y = IntersectionPoint.Y;
+                    Line y = NoDraw.Line(new Point3d(Mid_Horizontal, Maximum_Elevation, 0), new Point3d(Mid_Horizontal, Datum, 0));
+                    Polyline crossLine = NoDraw.Pline(_nodes.Select(n => n.Point2d).ToList());
+                    Point3dCollection p3dc = new Point3dCollection();
+                    crossLine.IntersectWith(y, Intersect.ExtendArgument, p3dc, IntPtr.Zero, IntPtr.Zero);
+                    Intersect_X = p3dc[0].X;
+                    Intersect_Y = p3dc[0].Y;
                     AsPoint2d = new Point3d(Intersect_X, Intersect_Y, 0);
                     int counter = 0;
                     foreach (Node current in NodeList)
