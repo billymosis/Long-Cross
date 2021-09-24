@@ -118,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\controller\CrossCommand.cs" />
+    <Compile Include="src\controller\LongCommand.cs" />
     <Compile Include="src\controller\PlanCommand.cs" />
     <Compile Include="src\controller\StructureCommand.cs" />
     <Compile Include="src\lib\change_elevation\ChangeElevation.cs" />
@@ -129,6 +130,7 @@
     <Compile Include="src\lib\data\models\Node.cs" />
     <Compile Include="src\lib\data\models\Nodes.cs" />
     <Compile Include="src\lib\data\models\Structure.cs" />
+    <Compile Include="src\lib\long\long.cs" />
     <Compile Include="src\lib\table\DrawTableKerusakan.cs" />
     <Compile Include="src\lib\table\DrawTable.cs" />
     <Compile Include="src\lib\Global.cs" />

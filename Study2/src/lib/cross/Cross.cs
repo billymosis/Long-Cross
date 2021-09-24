@@ -49,6 +49,7 @@ namespace PLC
         {
             CreateLayer("CUT", 1);
             CreateLayer("FILL", 2);
+            CreateLayer("OGL", 3, "DASHED");
             this.data = data;
             int row = 0;
             int column = 0;
@@ -225,7 +226,6 @@ namespace PLC
 
                 List<Node> innerNode = new List<Node>();
                 List<Node> outterNode = new List<Node>();
-                List<Line> Intersected = new List<Line>();
                 List<Line> InnerLines = new List<Line>();
                 List<Line> OutterLines = new List<Line>();
                 List<Line> ExtensionLinesRight = new List<Line>();
@@ -260,6 +260,7 @@ namespace PLC
                         {
                             Line leftInner = InnerLines.MinBy(x => x.EndPoint.X).First();
                             Line a = nodes.segments.Where(x => x.Lines.EndPoint == leftInner.StartPoint).First().Lines;
+                            a.Layer = "OGL";
                             a.StartPoint = new Point3d(LeftInnerIntersection[0].X, LeftInnerIntersection[0].Y, 0);
                             if (a == leftExtension)
                             {
@@ -288,6 +289,7 @@ namespace PLC
                         }
 
                         crossEntities.Add(NoDraw.Line(new Point3d(leftExtension.EndPoint.X, leftExtension.EndPoint.Y + 0.2, 0), new Point3d(leftExtension.EndPoint.X, leftExtension.EndPoint.Y - 0.2, 0)));
+                        leftExtension.Layer = "OGL";
                         crossEntities.Add(leftExtension);
                         crossEntities.Add(DashLineHelper(nodes.Datum - 0.5, leftExtension.StartPoint.X, first.Elevation));
                         crossEntities.Add(LineLabelSeparator(nodes.Datum, leftExtension.StartPoint.X));
@@ -306,6 +308,7 @@ namespace PLC
                         {
                             Line rightInner = InnerLines.MaxBy(x => x.EndPoint.X).First();
                             Line a = nodes.segments.Where(x => x.Lines.StartPoint == rightInner.EndPoint).First().Lines;
+                            a.Layer = "OGL";
                             a.EndPoint = new Point3d(RightInnerIntersection[0].X, RightInnerIntersection[0].Y, 0);
                             if (a == rightExtension)
                             {
@@ -335,6 +338,7 @@ namespace PLC
                         }
 
                         crossEntities.Add(NoDraw.Line(new Point3d(rightExtension.StartPoint.X, rightExtension.StartPoint.Y + 0.2, 0), new Point3d(rightExtension.StartPoint.X, rightExtension.StartPoint.Y - 0.2, 0)));
+                        rightExtension.Layer = "OGL";
                         crossEntities.Add(rightExtension);
                         crossEntities.Add(DashLineHelper(nodes.Datum - 0.5, rightExtension.EndPoint.X, last.Elevation));
                         crossEntities.Add(LineLabelSeparator(nodes.Datum, rightExtension.EndPoint.X));
@@ -435,8 +439,12 @@ namespace PLC
                 crossEntities.Add(LineLabelSeparator(nodes.Datum, bro.StartPoint.X));
 
                 crossEntities.Add(patok);
+                foreach (Line line in InnerLines)
+                {
+                    line.Layer = "OGL";
+                }
                 crossEntities.AddRange(InnerLines);
-                crossEntities.AddRange(Intersected);
+
                 crossEntities.ToArray().AddToBlock(nodes.Patok, nodes.AsPoint2d);
 
             }
