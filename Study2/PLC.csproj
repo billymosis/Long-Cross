@@ -80,30 +80,6 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AcCoreMgd, Version=19.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcCoreMgd.dll</HintPath>
-    </Reference>
-    <Reference Include="AcCui">
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcCui.dll</HintPath>
-    </Reference>
-    <Reference Include="AcDbMgd, Version=19.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcDbMgd.dll</HintPath>
-    </Reference>
-    <Reference Include="AcMgd, Version=19.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcMgd.dll</HintPath>
-    </Reference>
-    <Reference Include="AcTcMgd">
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcTcMgd.dll</HintPath>
-    </Reference>
-    <Reference Include="AcWindows">
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcWindows.dll</HintPath>
-    </Reference>
-    <Reference Include="AdWindows">
-      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AdWindows.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
