@@ -10,7 +10,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PLC", "Study2\PLC.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyLicense.Lib", "EasyLicense.Lib\EasyLicense.Lib.csproj", "{3F080765-0AF5-4083-92C4-93D194924BB3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoCADCommands.R19", "..\AutoCADCodePack-master\AutoCADCommands\AutoCADCommands.R19.csproj", "{77B9F8FE-F75B-48C8-8249-6859E8D347E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoCADCommands.R19", "AutoCADCodePack\AutoCADCommands\AutoCADCommands.R19.csproj", "{77B9F8FE-F75B-48C8-8249-6859E8D347E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
