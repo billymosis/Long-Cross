@@ -80,8 +80,29 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GeometryExtensions_19">
-      <HintPath>..\..\GeometryExtensions(1.6)\GeometryExtensions_19.dll</HintPath>
+    <Reference Include="AcCoreMgd, Version=19.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcCoreMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="AcCui">
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcCui.dll</HintPath>
+    </Reference>
+    <Reference Include="AcDbMgd, Version=19.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcDbMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="AcMgd, Version=19.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="AcTcMgd">
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcTcMgd.dll</HintPath>
+    </Reference>
+    <Reference Include="AcWindows">
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AcWindows.dll</HintPath>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>..\AutoCADCodePack\Reference\AutoCAD\r19\AdWindows.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -185,13 +206,13 @@
       <Version>1.1.0</Version>
     </PackageReference>
     <PackageReference Include="CsvHelper">
-      <Version>19.0.0</Version>
+      <Version>27.2.1</Version>
     </PackageReference>
     <PackageReference Include="morelinq">
       <Version>3.3.2</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
-      <Version>12.0.3</Version>
+      <Version>13.0.1</Version>
     </PackageReference>
     <PackageReference Include="System.ValueTuple">
       <Version>4.5.0</Version>
@@ -209,7 +230,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\AutoCADCodePack\AutoCADCommands\AutoCADCommands.R19.csproj">
+    <ProjectReference Include="..\AutoCADCodePack\AutoCADCommands\AutoCADCommands.R19.csproj">
       <Project>{77b9f8fe-f75b-48c8-8249-6859e8d347e1}</Project>
       <Name>AutoCADCommands.R19</Name>
     </ProjectReference>

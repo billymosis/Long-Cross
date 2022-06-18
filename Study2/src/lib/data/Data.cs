@@ -1,5 +1,6 @@
 ﻿using Autodesk.AutoCAD.Geometry;
 using CsvHelper;
+using CsvHelper.Configuration;
 using Dreambuild.AutoCAD;
 using System;
 using System.Collections.Generic;
@@ -69,13 +70,17 @@ namespace PLC
         public void ReadData(string p)
         {
             List<List<string>> Lines = new List<List<string>>();
-            using (StreamReader reader = new StreamReader(File.Open(p, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
-            using (CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture);
+            config.HasHeaderRecord = false;
+            if (p.Contains(".txt"))
             {
-                csv.Configuration.HasHeaderRecord = false;
+                config.Delimiter = "\t";
+            };
+            using (StreamReader reader = new StreamReader(File.Open(p, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+            using (CsvReader csv = new CsvReader(reader, config ))
+            {
                 if (p.Contains(".txt"))
                 {
-                    csv.Configuration.Delimiter = "\t";
                     for (int i = 0; i < 8; i++)
                     {
                         csv.Read();

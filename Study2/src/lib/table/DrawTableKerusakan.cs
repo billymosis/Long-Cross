@@ -4,6 +4,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using CsvHelper;
+using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
 using System;
 using System.Collections.Generic;
@@ -50,6 +51,7 @@ namespace PLC
             PromptOpenFileOptions POFO = new PromptOpenFileOptions("Select File: ");
             POFO.Filter = "Data Tabel (*.csv)| *csv";
             string s = ed.GetFileNameForOpen(POFO).StringResult;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false };
             using (StreamReader reader = new StreamReader(File.Open(s, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
             {
                 using (Transaction tr = Application.DocumentManager.MdiActiveDocument.TransactionManager.StartTransaction())
@@ -60,7 +62,6 @@ namespace PLC
                         {
                             using (CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture))
                             {
-                                csv.Configuration.HasHeaderRecord = false;
                                 for (int i = 0; i < 4; i++)
                                 {
                                     csv.Read();

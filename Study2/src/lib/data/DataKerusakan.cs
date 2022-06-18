@@ -5,6 +5,7 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
 using CsvHelper;
+using CsvHelper.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -273,10 +274,10 @@ namespace PLC
         public void ReadData(string p)
         {
             List<List<string>> Lines = new List<List<string>>();
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false };
             using (StreamReader reader = new StreamReader(File.Open(p, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
-            using (CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            using (CsvReader csv = new CsvReader(reader, config))
             {
-                csv.Configuration.HasHeaderRecord = false;
                 IEnumerable<dynamic> records = csv.GetRecords<dynamic>();
                 foreach (IDictionary<string, object> items in records)
                 {
