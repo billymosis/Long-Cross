@@ -11,7 +11,11 @@ namespace PLC
     public class Canal
     {
         public LinkedList<Nodes> nodes = new LinkedList<Nodes>();
-        public Dictionary<Point3d, double> AlignmentDictionary = new Dictionary<Point3d, double>();
+        public List<KeyValuePair<Point3d, double>> AlignmentDictionaryAngle = new List<KeyValuePair<Point3d, double>>();
+        public List<KeyValuePair<Point3d, double>> AlignmentDistance = new List<KeyValuePair<Point3d, double>>();
+        public List<KeyValuePair<Point3d, double>> TanggulKiri = new List<KeyValuePair<Point3d, double>>();
+        public List<KeyValuePair<Point3d, double>> TanggulKanan = new List<KeyValuePair<Point3d, double>>();
+        public List<KeyValuePair<Point3d, double>> TanggulTertinggi = new List<KeyValuePair<Point3d, double>>();
         public Point3dCollection PolygonNodes = new Point3dCollection();
         public string saluran;
         public Canal()
@@ -75,7 +79,9 @@ namespace PLC
                 current.angle = angleCurrent;
                 Point3d AlignmentPoint = PolarPoints(new Point3d(current.X_BASE, current.Y_BASE, current.Z_BASE), angleCurrent, current.Intersect_X);
                 AlignmentPoint = new Point3d(AlignmentPoint.X, AlignmentPoint.Y, current.Intersect_Y);
-                AlignmentDictionary.Add(AlignmentPoint, angleCurrent);
+                AlignmentDictionaryAngle.Add(new KeyValuePair<Point3d, double>(AlignmentPoint, angleCurrent));
+                AlignmentDistance.Add(new KeyValuePair<Point3d, double>(AlignmentPoint, current.station));
+
                 current.AsPoint = AlignmentPoint;
 
                 PolygonNodes.Add(current.PointPatok);
@@ -90,7 +96,15 @@ namespace PLC
                     current.NodePoint.Add(new KeyValuePair<Point3d, string>(CalculatedPoint, node.Description));
                     current.FlatNodePoint.Add(node.Point2d);
                 }
+                if (current.ValidCross)
+                {
+                    Point3d kiri = current.NodePoint.Where(n => n.Value.Contains("T")).First().Key;
+                    Point3d kanan = current.NodePoint.Where(n => n.Value.Contains("T")).Last().Key;
+                    TanggulKiri.Add(new KeyValuePair<Point3d, double>(kiri, current.station));
+                    TanggulKanan.Add(new KeyValuePair<Point3d, double>(kanan, current.station));
+                    TanggulTertinggi.Add(kiri.Z < kanan.Z ? new KeyValuePair<Point3d, double>(kanan, current.station) : new KeyValuePair<Point3d, double>(kiri, current.station));
 
+                }
 
             }
         }

@@ -298,7 +298,7 @@ namespace PLC
             return cutRegion;
         }
 
-        public static void CreateLayer(string layName, short ColorIndex)
+        public static void CreateLayer(string layName, short ColorIndex, string LineType = "Continuous")
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -313,7 +313,9 @@ namespace PLC
                     LayerTableRecord ltr = new LayerTableRecord()
                     {
                         Name = layName,
-                        Color = Color.FromColorIndex(ColorMethod.ByAci, ColorIndex)
+                        Color = Color.FromColorIndex(ColorMethod.ByAci, ColorIndex),
+                        LinetypeObjectId = DbHelper.GetLinetypeId(LineType)
+
                     };
                     lt.UpgradeOpen();
                     ObjectId ltId = lt.Add(ltr);
@@ -829,7 +831,7 @@ namespace PLC
                 LinetypeTable acLineTypTbl;
                 acLineTypTbl = acTrans.GetObject(acCurDb.LinetypeTableId,
                                                     OpenMode.ForRead) as LinetypeTable;
-                string[] linetypes = {"DASHED", "DASHDOT" };
+                string[] linetypes = { "DASHED", "DASHDOT" };
                 foreach (string sLineTypName in linetypes)
                 {
                     if (acLineTypTbl.Has(sLineTypName) == false)

@@ -19,7 +19,6 @@ namespace PLC.src.controller
         [CommandMethod("ExDraw")]
         public static void ExDraw()
         {
-
             const bool isCrossOnly = true;
             Document Doc = Application.DocumentManager.MdiActiveDocument;
             Editor ed = Doc.Editor;

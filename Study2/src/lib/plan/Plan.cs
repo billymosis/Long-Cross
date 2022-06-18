@@ -71,8 +71,8 @@ namespace PLC
         private List<Entity> DrawAlignment(Canal data)
         {
             List<Entity> AlignmentEntities = new List<Entity>();
-            Polyline alignment = NoDraw.Pline(data.AlignmentDictionary.Keys);
-            foreach (KeyValuePair<Point3d, double> item in data.AlignmentDictionary)
+            Polyline alignment = NoDraw.Pline(data.AlignmentDictionaryAngle.Select(x => x.Key));
+            foreach (KeyValuePair<Point3d, double> item in data.AlignmentDictionaryAngle)
             {
                 if (item.Key.Z != 0)
                 {
