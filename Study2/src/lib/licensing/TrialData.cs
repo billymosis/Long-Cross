@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿// using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -110,7 +110,7 @@ namespace PLC.Licensing
         {
             byte[] data2 = ReadSettingsFromIsoStorage("Settings.dat");
             string json = ReadData(data2);
-            Dictionary<string, string> Dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+            Dictionary<string, string> Dict = new Dictionary<string, string>(); // JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
             return Dict;
         }
 

@@ -22,6 +22,7 @@ namespace PLC
 
     public static class Utilities
     {
+        const string BLOCK_PATH = @"C:\Users\Billy\Documents\personal\cad\Long-Cross\Study2\data\Baloon2.dwg";
         public static void SetAttributes(string TagName, string Value, ObjectId BlockId)
         {
             BlockId.QOpenForWrite<BlockReference>
@@ -751,7 +752,7 @@ namespace PLC
 
             using (Database dbs = new Database(false, true))
             {
-                dbs.ReadDwgFile(@"E:\AutoCAD Project\Study2\Study2\data\Baloon2.dwg", FileOpenMode.OpenForReadAndAllShare, true, "");
+                dbs.ReadDwgFile(BLOCK_PATH, FileOpenMode.OpenForReadAndAllShare, true, "");
                 using (Transaction tr = dbs.TransactionManager.StartTransaction())
                 {
                     using (BlockTable bt = tr.GetObject(dbs.BlockTableId, OpenMode.ForRead) as BlockTable)

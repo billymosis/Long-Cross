@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿// using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +18,7 @@ namespace PLC.Licensing
 
         public static byte[] EncryptToJSON(object o)
         {
-            string json = JsonConvert.SerializeObject(o);
+            string json = "";// JsonConvert.SerializeObject(o);
 
             using (Aes myAes = Aes.Create())
             {
