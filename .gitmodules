@@ -1,0 +1,3 @@
+[submodule "AutoCADCodePack"]
+	path = AutoCADCodePack
+	url = https://github.com/billymosis/AutoCADCodePack.git
