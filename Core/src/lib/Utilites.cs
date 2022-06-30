@@ -15,6 +15,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using AcRx = Autodesk.AutoCAD.Runtime;
 namespace PLC
 {
@@ -22,7 +23,6 @@ namespace PLC
 
     public static class Utilities
     {
-        const string BLOCK_PATH = @"C:\Users\Billy\Documents\personal\cad\Long-Cross\Study2\data\Baloon2.dwg";
         public static void SetAttributes(string TagName, string Value, ObjectId BlockId)
         {
             BlockId.QOpenForWrite<BlockReference>
@@ -743,7 +743,17 @@ namespace PLC
             x.Dispose();
         }
 
-        public static void ImportBlock()
+        /// <summary>
+        /// Check file or directory exist
+        /// </summary>
+        /// <param name="name">File or Directory Path</param>
+        /// <returns>exist or not</returns>
+        public static bool FileOrDirectoryExist(string name)
+        {
+            return (Directory.Exists(name) || File.Exists(name));
+        }
+
+        public static void ImportBlock(string path)
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
@@ -752,21 +762,28 @@ namespace PLC
 
             using (Database dbs = new Database(false, true))
             {
-                dbs.ReadDwgFile(BLOCK_PATH, FileOpenMode.OpenForReadAndAllShare, true, "");
-                using (Transaction tr = dbs.TransactionManager.StartTransaction())
+                try
                 {
-                    using (BlockTable bt = tr.GetObject(dbs.BlockTableId, OpenMode.ForRead) as BlockTable)
+                    dbs.ReadDwgFile(path, FileOpenMode.OpenForReadAndAllShare, true, "");
+                    using (Transaction tr = dbs.TransactionManager.StartTransaction())
                     {
-                        using (ObjectIdCollection ids = new ObjectIdCollection())
+                        using (BlockTable bt = tr.GetObject(dbs.BlockTableId, OpenMode.ForRead) as BlockTable)
                         {
-                            foreach (ObjectId item in bt)
+                            using (ObjectIdCollection ids = new ObjectIdCollection())
                             {
-                                ids.Add(item);
+                                foreach (ObjectId item in bt)
+                                {
+                                    ids.Add(item);
+                                }
+                                tr.Commit();
+                                db.WblockCloneObjects(ids, db.BlockTableId, new IdMapping(), DuplicateRecordCloning.Ignore, false);
                             }
-                            tr.Commit();
-                            db.WblockCloneObjects(ids, db.BlockTableId, new IdMapping(), DuplicateRecordCloning.Ignore, false);
                         }
                     }
+                }
+                catch (Autodesk.AutoCAD.Runtime.Exception Ex)
+                {
+                    Application.ShowAlertDialog("The following exception was caught:\n" + Ex.Message + "\nfile path:\n" + path);
                 }
             }
         }
@@ -841,7 +858,6 @@ namespace PLC
                         acCurDb.LoadLineTypeFile(sLineTypName, "acad.lin");
                     }
                 }
-
 
                 // Save the changes and dispose of the transaction
                 acTrans.Commit();
@@ -1053,11 +1069,18 @@ namespace PLC
         {
             using (StreamWriter file = new StreamWriter(filename, false))
             {
-
                 file.WriteLine(content);
-
-
             }
+        }
+
+        public static string ReadFile(string path)
+        {
+            string result;
+            using (StreamReader streamReader = new StreamReader(path, Encoding.UTF8))
+            {
+                result = streamReader.ReadToEnd();
+            }
+            return result;
         }
 
         public static void DrawLine(Point3d Awal, Point3d Akhir, BlockTableRecord btr)
