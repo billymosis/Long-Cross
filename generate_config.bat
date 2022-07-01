@@ -1,0 +1,1 @@
+xcopy .\Assets\Config\CanalCAD\ %userprofile%\AppData\Roaming\CanalCAD\ /E
